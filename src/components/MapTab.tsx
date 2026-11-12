@@ -41,7 +41,7 @@ function MapController({ center, zoom }: { center: [number, number]; zoom?: numb
 function createHotspotIcon(category: string, status: string, corroborations: number) {
   const color = status === 'RESOLVED' ? '#22c55e' : status === 'CHRONIC_REOPENED' ? '#a855f7' : '#ef4444';
   const bgColor = status === 'RESOLVED' ? '#14532d' : status === 'CHRONIC_REOPENED' ? '#581c87' : '#7f1d1d';
-  const emoji = category === 'Garbage' ? '🗑️' : category === 'Drainage' ? '💧' : category === 'Streetlight' ? '💡' : '⚠️';
+  const emoji = category === 'Garbage' ? '🗑️' : category === 'Drainage' ? '💧' : category === 'Streetlight' ? '💡' : category === 'Encroachment' ? '🛑' : '⚠️';
 
   return L.divIcon({
     className: 'custom-civic-pin',
@@ -465,7 +465,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                   selectedHotspot.status === 'CHRONIC_REOPENED' ? 'bg-purple-950/60 border-purple-500/60' :
                   'bg-red-950/60 border-red-500/60'
                 }`}>
-                  {selectedHotspot.category === 'Garbage' ? '🗑️' : selectedHotspot.category === 'Drainage' ? '💧' : selectedHotspot.category === 'Streetlight' ? '💡' : '⚠️'}
+                  {selectedHotspot.category === 'Garbage' ? '🗑️' : selectedHotspot.category === 'Drainage' ? '💧' : selectedHotspot.category === 'Streetlight' ? '💡' : selectedHotspot.category === 'Encroachment' ? '🛑' : '⚠️'}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

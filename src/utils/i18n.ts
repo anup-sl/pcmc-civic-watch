@@ -61,7 +61,8 @@ export const TRANSLATIONS = {
       Garbage: "Garbage / Waste",
       Drainage: "Water / Drainage",
       Pothole: "Potholes / Roads",
-      Streetlight: "Streetlights / Electricity"
+      Streetlight: "Streetlights / Electricity",
+      Encroachment: "Illegal Encroachment"
     }
   },
   mr: {
@@ -124,7 +125,8 @@ export const TRANSLATIONS = {
       Garbage: "कचरा व्यवस्थापन",
       Drainage: "पाणी व ड्रेनेज",
       Pothole: "खड्डे व रस्ते",
-      Streetlight: "पथदिवे व वीज"
+      Streetlight: "पथदिवे व वीज",
+      Encroachment: "अनधिकृत अतिक्रमण"
     }
   }
 };

@@ -14,7 +14,8 @@ import {
   Plus,
   Edit2,
   Search,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CATEGORIES } from '../types';
@@ -128,6 +129,12 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       'Complete dark stretch, streetlights not working',
       'Flickering lamp pole posing safety risk',
       'Damaged light pole with exposed wiring'
+    ],
+    Encroachment: [
+      'Footpath completely blocked by illegal stalls, pedestrians forced onto road',
+      'Unauthorized tin shed erected on public walkway',
+      'Commercial banners and advertising boards blocking road visibility',
+      'Construction debris and vehicles blocking pedestrian access'
     ]
   };
 
@@ -471,29 +478,31 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       </div>
 
       {/* ======================================================== */}
-      {/* 3. CAMERA ACTION: LARGE SNAP CIVIC ISSUE BUTTON          */}
+      {/* 3. CAMERA ACTION: COMPACT SNAP CIVIC ISSUE BUTTON         */}
       {/* ======================================================== */}
       {!photoPreviewUrl ? (
         <button
           type="button"
           onClick={triggerCameraSnap}
-          className="w-full group relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-cyan-950/50 border border-cyan-400/40 flex flex-col items-center justify-center gap-3 active:scale-[0.98] transition-all"
+          className="w-full group relative overflow-hidden rounded-2xl p-3 sm:p-3.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-md shadow-cyan-950/40 border border-cyan-400/30 flex items-center justify-between gap-3 active:scale-[0.98] transition-all"
         >
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner ring-4 ring-white/20 group-hover:scale-105 transition-transform">
-            <Camera className="w-8 h-8 text-white" />
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner ring-2 ring-white/20 group-hover:scale-105 transition-transform shrink-0">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+
+            <div className="text-left min-w-0">
+              <span className="text-sm sm:text-base font-extrabold tracking-tight block leading-tight truncate">
+                {t.snapButton}
+              </span>
+              <span className="text-[11px] text-cyan-100 font-medium block leading-tight truncate mt-0.5">
+                {t.snapSubtext}
+              </span>
+            </div>
           </div>
 
-          <div className="text-center space-y-1">
-            <span className="text-xl font-black tracking-tight block">
-              {t.snapButton}
-            </span>
-            <span className="text-xs text-cyan-100 font-medium block">
-              {t.snapSubtext}
-            </span>
-          </div>
-
-          <div className="mt-1 px-4 py-1.5 rounded-full bg-white/20 text-white font-extrabold text-xs uppercase tracking-wider backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
-            <span>Open Live Camera</span>
+          <div className="px-3 py-1.5 rounded-xl bg-white/20 group-hover:bg-white/30 text-white font-black text-xs uppercase tracking-wider backdrop-blur-xs flex items-center gap-1.5 shrink-0 shadow-xs">
+            <span>Camera</span>
             <span>📷</span>
           </div>
         </button>
@@ -621,30 +630,34 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
             <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
               {t.categoryLabel}
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {(Object.keys(CATEGORIES) as Category[]).map((catKey) => {
                 const cat = CATEGORIES[catKey];
                 const isSelected = selectedCategory === catKey;
+                const isEncroachment = catKey === 'Encroachment';
 
                 return (
                   <button
                     key={catKey}
                     type="button"
                     onClick={() => handleCategorySelect(catKey)}
-                    className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    className={`relative p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                      isEncroachment ? 'col-span-2 sm:col-span-1' : ''
+                    } ${
                       isSelected
                         ? 'bg-slate-800/95 border-cyan-500 ring-2 ring-cyan-500/30 shadow-lg'
                         : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`p-2 rounded-xl ${cat.bgColor} ${cat.color}`}>
-                        {catKey === 'Garbage' && <Trash2 className="w-5 h-5" />}
-                        {catKey === 'Drainage' && <Droplets className="w-5 h-5" />}
-                        {catKey === 'Pothole' && <AlertTriangle className="w-5 h-5" />}
-                        {catKey === 'Streetlight' && <Lightbulb className="w-5 h-5" />}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className={`p-1.5 rounded-xl ${cat.bgColor} ${cat.color}`}>
+                        {catKey === 'Garbage' && <Trash2 className="w-4 h-4" />}
+                        {catKey === 'Drainage' && <Droplets className="w-4 h-4" />}
+                        {catKey === 'Pothole' && <AlertTriangle className="w-4 h-4" />}
+                        {catKey === 'Streetlight' && <Lightbulb className="w-4 h-4" />}
+                        {catKey === 'Encroachment' && <ShieldAlert className="w-4 h-4" />}
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
                         isSelected ? 'bg-cyan-950 text-cyan-300 border-cyan-700' : 'bg-slate-950 text-slate-400 border-slate-800'
                       }`}>
                         {cat.slaHours}h SLA
@@ -652,9 +665,9 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
                     </div>
 
                     <div>
-                      <div className="font-bold text-sm text-white flex items-center justify-between">
-                        {t.categories[catKey] || cat.name}
-                        {isSelected && <Check className="w-4 h-4 text-cyan-400" />}
+                      <div className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                        <span className="truncate">{t.categories[catKey] || cat.name}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-1" />}
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
                         {cat.description}
@@ -666,12 +679,15 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
             </div>
           </div>
 
-          {/* QUICK SUB-TAG PILLS */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
-              {t.subTagLabel} ({t.categories[selectedCategory] || selectedCategory})
-            </label>
-            <div className="grid grid-cols-3 gap-2">
+          {/* QUICK SUB-TAG SPECIFICATION PILLS */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                {t.subTagLabel} ({t.categories[selectedCategory] || selectedCategory})
+              </label>
+              <span className="text-[10px] text-slate-500 font-medium">Select exact issue</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {CATEGORIES[selectedCategory].subTags.map((tag) => {
                 const isSelected = selectedSubTag === tag;
                 return (
@@ -679,10 +695,10 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
                     key={tag}
                     type="button"
                     onClick={() => setSelectedSubTag(tag)}
-                    className={`py-2 px-2.5 rounded-xl text-center text-xs font-medium border transition-all ${
+                    className={`py-1.5 px-2.5 rounded-xl text-left text-xs font-medium border transition-all ${
                       isSelected
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-semibold shadow-md shadow-cyan-500/20'
-                        : 'bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700'
+                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-bold shadow-sm shadow-cyan-500/20'
+                        : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
                     }`}
                   >
                     {tag}

@@ -128,6 +128,31 @@ export const PCMC_ESCALATION_CONFIG = {
         "v.suryawanshi@pcmcindia.gov.in",
         "m.lonkar@pcmcindia.gov.in"
       ]
+    },
+    ENCROACHMENT: {
+      display_name: "Illegal Encroachment & Footpath Blocking",
+      department: "Anti-Encroachment & Building Permission",
+      sla_hours: 72,
+      merge_radius_meters: 15,
+      recurrence_window_days: 14,
+      primary_official: {
+        name: "Mr. Manoj Lonkar / Nodal Officer (Encroachment)",
+        role: "Deputy Commissioner (Anti-Encroachment & Land Modernization)",
+        to_emails: [
+          "encroachment@pcmcindia.gov.in",
+          "m.lonkar@pcmcindia.gov.in"
+        ],
+        phone: "020-67333333"
+      },
+      cc_initial: [
+        "sarathi@pcmcindia.gov.in",
+        "egov@pcmcindia.gov.in"
+      ],
+      cc_overdue_escalation: [
+        "commissioner@pcmcindia.gov.in",
+        "v.suryawanshi@pcmcindia.gov.in",
+        "m.lonkar@pcmcindia.gov.in"
+      ]
     }
   },
   zonal_offices: {
@@ -145,6 +170,7 @@ export function getCategoryEscalationConfig(category: Category | string) {
   if (norm.includes('GARBAGE')) return PCMC_ESCALATION_CONFIG.categories.GARBAGE;
   if (norm.includes('DRAINAGE') || norm.includes('WATER')) return PCMC_ESCALATION_CONFIG.categories.DRAINAGE;
   if (norm.includes('STREETLIGHT') || norm.includes('LIGHT') || norm.includes('ELECTRIC')) return PCMC_ESCALATION_CONFIG.categories.STREETLIGHT;
+  if (norm.includes('ENCROACH') || norm.includes('HAWKER') || norm.includes('FOOTPATH')) return PCMC_ESCALATION_CONFIG.categories.ENCROACHMENT;
   return PCMC_ESCALATION_CONFIG.categories.POTHOLE;
 }
 

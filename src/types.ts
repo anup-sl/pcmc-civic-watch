@@ -1,4 +1,4 @@
-export type Category = 'Garbage' | 'Drainage' | 'Pothole' | 'Streetlight';
+export type Category = 'Garbage' | 'Drainage' | 'Pothole' | 'Streetlight' | 'Encroachment';
 
 export type HotspotStatus = 'OPEN' | 'CHRONIC_REOPENED' | 'RESOLVED';
 
@@ -49,7 +49,15 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     color: 'text-amber-400',
     bgColor: 'bg-amber-500/10 hover:bg-amber-500/20',
     borderColor: 'border-amber-500/40',
-    subTags: ['Overflowing Bin', 'Illegal Dumping', 'Construction Debris'],
+    subTags: [
+      'Overflowing Bin',
+      'Illegal Roadside Dumping',
+      'Construction Debris',
+      'Open Waste Burning',
+      'Dead Animal / Carcass',
+      'Uncleaned Public Urinal',
+      'Garden / Tree Waste'
+    ],
     description: 'Waste piling or illegal disposal'
   },
   Drainage: {
@@ -59,7 +67,14 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     color: 'text-cyan-400',
     bgColor: 'bg-cyan-500/10 hover:bg-cyan-500/20',
     borderColor: 'border-cyan-500/40',
-    subTags: ['Clogged Drain', 'Sewage Overflow', 'Missing Manhole Lid'],
+    subTags: [
+      'Clogged Stormwater Drain',
+      'Sewage Chamber Overflow',
+      'Missing / Broken Manhole Lid',
+      'Stagnant Water / Mosquitoes',
+      'Drinking Water Pipeline Leak',
+      'Open Drainage Pit Hazard'
+    ],
     description: 'Blocked gutter or wastewater backup'
   },
   Pothole: {
@@ -69,7 +84,14 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     color: 'text-rose-400',
     bgColor: 'bg-rose-500/10 hover:bg-rose-500/20',
     borderColor: 'border-rose-500/40',
-    subTags: ['Deep Crater', 'Road Cavity', 'Multiple Potholes'],
+    subTags: [
+      'Deep Crater on Carriageway',
+      'Sunken Manhole / Trench Dip',
+      'Loose Gravel / Asphalt Washed Out',
+      'Multiple Consecutive Potholes',
+      'Broken Paver Blocks',
+      'Road Surface Subsidence'
+    ],
     description: 'Road damage affecting vehicle safety'
   },
   Streetlight: {
@@ -79,7 +101,33 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     color: 'text-yellow-400',
     bgColor: 'bg-yellow-500/10 hover:bg-yellow-500/20',
     borderColor: 'border-yellow-500/40',
-    subTags: ['Light Out / Dark', 'Broken Pole', 'Exposed Wires'],
+    subTags: [
+      'Completely Dark Stretch',
+      'Single Lamp Not Working',
+      'Flickering / Dim Streetlight',
+      'Exposed / Hanging Live Wires',
+      'Damaged / Tilted Electric Pole',
+      'High Mast Light Failure',
+      'Daytime Burning Light'
+    ],
     description: 'Non-functional street light or hazard'
+  },
+  Encroachment: {
+    name: 'Encroachment',
+    slaHours: 72,
+    iconName: 'ShieldAlert',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10 hover:bg-purple-500/20',
+    borderColor: 'border-purple-500/40',
+    subTags: [
+      'Footpath Blocked by Hawkers',
+      'Illegal Permanent / Tin Shed',
+      'Commercial Board / Banner on Road',
+      'Vehicles Occupying Walkway',
+      'Construction Material on Road',
+      'Nullah / Open Space Encroachment',
+      'Unauthorised Parking / Stand'
+    ],
+    description: 'Footpath blocked or illegal public land occupation'
   }
 };

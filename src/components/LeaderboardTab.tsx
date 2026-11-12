@@ -573,7 +573,7 @@ export const LeaderboardTab = ({ language }: LeaderboardTabProps) => {
                         <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 flex-wrap">
                           {Object.entries(area.categories).map(([cat, cnt]) => (
                             <span key={cat} className="bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">
-                              {cat === 'Garbage' ? '🗑️' : cat === 'Drainage' ? '💧' : cat === 'Streetlight' ? '💡' : '⚠️'} {t.categories[cat as keyof typeof t.categories] || cat} ({cnt})
+                              {cat === 'Garbage' ? '🗑️' : cat === 'Drainage' ? '💧' : cat === 'Streetlight' ? '💡' : cat === 'Encroachment' ? '🛑' : '⚠️'} {t.categories[cat as keyof typeof t.categories] || cat} ({cnt})
                             </span>
                           ))}
                         </div>

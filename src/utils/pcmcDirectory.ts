@@ -87,7 +87,8 @@ export const DEPARTMENT_EMAILS: Record<string, string> = {
   Garbage: 'health@pcmcindia.gov.in',
   Pothole: 'engineering@pcmcindia.gov.in',
   Drainage: 'drainage@pcmcindia.gov.in',
-  Streetlight: 'electrical@pcmcindia.gov.in'
+  Streetlight: 'electrical@pcmcindia.gov.in',
+  Encroachment: 'encroachment@pcmcindia.gov.in'
 };
 
 export const PCMC_SARATHI = {
