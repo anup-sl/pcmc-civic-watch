@@ -114,6 +114,7 @@ export function App() {
           <ReportTab
             language={language}
             onNavigateToMap={handleNavigateToMap}
+            onNavigateToLeaderboard={() => setActiveTab('leaderboard')}
             initialCoords={targetCoords}
           />
         )}
