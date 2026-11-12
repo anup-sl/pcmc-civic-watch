@@ -4,6 +4,7 @@ import { MapTab } from './components/MapTab';
 import { LeaderboardTab } from './components/LeaderboardTab';
 import { BottomNav, type TabKey } from './components/BottomNav';
 import { DirectoryModal } from './components/DirectoryModal';
+import { InstallPrompt } from './components/InstallPrompt';
 import { seedSampleDataIfEmpty } from './utils/seedData';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
@@ -127,6 +128,9 @@ export function App() {
           <LeaderboardTab language={language} />
         )}
       </main>
+
+      {/* PWA Install to Home Screen Banner & iOS Guide */}
+      <InstallPrompt language={language} />
 
       {/* 3 Bottom Navigation Tabs */}
       <BottomNav
