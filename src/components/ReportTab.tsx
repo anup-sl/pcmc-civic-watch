@@ -1,0 +1,745 @@
+import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { 
+  Camera, 
+  MapPin, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Trash2, 
+  Droplets, 
+  Lightbulb, 
+  RefreshCw, 
+  Sparkles, 
+  Check, 
+  Crosshair, 
+  Info,
+  Plus,
+  Edit2,
+  Search
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { CATEGORIES } from '../types';
+import type { Category, Hotspot } from '../types';
+import { submitCivicReport, supabase, haversineDistanceMeters } from '../supabase';
+import type { SubmitReportResult } from '../supabase';
+import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation } from '../utils/geo';
+import type { Language } from '../utils/i18n';
+import { TRANSLATIONS } from '../utils/i18n';
+
+interface ReportTabProps {
+  language: Language;
+  onNavigateToMap: (hotspotId?: string) => void;
+  initialCoords?: { lat: number; lng: number } | null;
+}
+
+export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTabProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = TRANSLATIONS[language];
+
+  // Form states
+  const [photoBlob, setPhotoBlob] = useState<Blob | File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category>('Pothole');
+  const [selectedSubTag, setSelectedSubTag] = useState<string>(CATEGORIES.Pothole.subTags[0]);
+  const [notes, setNotes] = useState<string>('');
+
+  // Location states
+  const [latitude, setLatitude] = useState<number>(initialCoords?.lat || PCMC_CENTER.latitude);
+  const [longitude, setLongitude] = useState<number>(initialCoords?.lng || PCMC_CENTER.longitude);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [areaName, setAreaName] = useState<string>(PCMC_CENTER.name);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
+  const [isOutsidePCMC, setIsOutsidePCMC] = useState<boolean>(false);
+  const [isEditingArea, setIsEditingArea] = useState<boolean>(false);
+  const [showLocationPicker, setShowLocationPicker] = useState<boolean>(false);
+  const [wardSearchQuery, setWardSearchQuery] = useState<string>('');
+
+  // Submission & Detection states
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [nearbyHotspots, setNearbyHotspots] = useState<{ hotspot: Hotspot; distance: number }[]>([]);
+  const [submissionResult, setSubmissionResult] = useState<SubmitReportResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Quick Phrases
+  const quickPhrasesByCategory: Record<Category, string[]> = {
+    Garbage: [
+      'Uncollected garbage pile & foul smell',
+      'Illegal construction debris dumped on road',
+      'Waste burning causing toxic morning smoke'
+    ],
+    Pothole: [
+      'Deep pothole crater causing two-wheeler hazard',
+      'Sunken drainage chamber on carriageway',
+      'Asphalt washed out across left lane'
+    ],
+    Drainage: [
+      'Choked stormwater drain overflowing on road',
+      'Missing manhole cover open hazard',
+      'Stagnant sewage pooling along footpath'
+    ],
+    Streetlight: [
+      'Complete dark stretch, streetlights not working',
+      'Flickering lamp pole posing safety risk',
+      'Damaged light pole with exposed wiring'
+    ]
+  };
+
+  // Fetch all hotspots to calculate ward-specific dashboard metrics
+  // Live reverse geocoding on coordinates
+  const resolveAddressForCoords = async (lat: number, lng: number) => {
+    setIsGeocoding(true);
+    try {
+      const res = await reverseGeocodeLocation(lat, lng);
+      setAreaName(res.formattedArea);
+      setIsOutsidePCMC(!res.isWithinPCMC);
+    } catch (err) {
+      console.warn('Geocoding error:', err);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Initialize GPS on load
+  useEffect(() => {
+    if (!initialCoords) {
+      grabLiveGPS();
+    } else {
+      setLatitude(initialCoords.lat);
+      setLongitude(initialCoords.lng);
+      resolveAddressForCoords(initialCoords.lat, initialCoords.lng);
+    }
+  }, [initialCoords]);
+
+  const handleCategorySelect = (cat: Category) => {
+    setSelectedCategory(cat);
+    setSelectedSubTag(CATEGORIES[cat].subTags[0]);
+  };
+
+  const appendQuickPhrase = (phrase: string) => {
+    setNotes(prev => prev ? `${prev}. ${phrase}` : phrase);
+  };
+
+  // Grab live GPS from device
+  const grabLiveGPS = () => {
+    if (!navigator.geolocation) {
+      resolveAddressForCoords(PCMC_CENTER.latitude, PCMC_CENTER.longitude);
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lng);
+        setAccuracy(Math.round(pos.coords.accuracy));
+        setIsLocating(false);
+        resolveAddressForCoords(lat, lng);
+      },
+      (err) => {
+        console.warn('Geolocation warning, defaulting to PCMC center:', err.message);
+        setIsLocating(false);
+        resolveAddressForCoords(latitude, longitude);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+    );
+  };
+
+  // Check for nearby hotspots within 20m whenever lat/lng or category changes
+  useEffect(() => {
+    let isCancelled = false;
+
+    const checkProximity = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('hotspots')
+          .select('*')
+          .eq('category', selectedCategory);
+
+        if (error || !data) return;
+
+        const within20 = (data as Hotspot[])
+          .map(h => ({
+            hotspot: h,
+            distance: Math.round(haversineDistanceMeters(latitude, longitude, h.latitude, h.longitude))
+          }))
+          .filter(item => item.distance <= 20)
+          .sort((a, b) => a.distance - b.distance);
+
+        if (!isCancelled) {
+          setNearbyHotspots(within20);
+        }
+      } catch (e) {
+        console.warn('Proximity check warning:', e);
+      }
+    };
+
+    checkProximity();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [latitude, longitude, selectedCategory]);
+
+  const triggerCameraSnap = () => {
+    grabLiveGPS();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoBlob(file);
+      const url = URL.createObjectURL(file);
+      setPhotoPreviewUrl(url);
+      setSubmissionResult(null);
+      setErrorMessage(null);
+    }
+  };
+
+  const handleUseSamplePhoto = (sampleUrl: string) => {
+    fetch(sampleUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        setPhotoBlob(blob);
+        setPhotoPreviewUrl(sampleUrl);
+        setSubmissionResult(null);
+      })
+      .catch(() => {
+        setPhotoPreviewUrl(sampleUrl);
+      });
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!photoBlob && !photoPreviewUrl) {
+      setErrorMessage(language === 'mr' ? 'कृपया समस्येचा फोटो घ्या.' : 'Please snap a photo of the civic issue before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      let finalBlob = photoBlob;
+      if (!finalBlob && photoPreviewUrl) {
+        const res = await fetch(photoPreviewUrl);
+        finalBlob = await res.blob();
+      }
+
+      const result = await submitCivicReport({
+        category: selectedCategory,
+        subTag: selectedSubTag,
+        latitude,
+        longitude,
+        areaName: areaName.trim() || 'Pimpri Chinchwad',
+        slaHours: CATEGORIES[selectedCategory].slaHours,
+        photoBlob: finalBlob!,
+        notes: notes.trim() || undefined
+      });
+
+      setSubmissionResult(result);
+
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Submission error:', err);
+      setErrorMessage(msg || 'Failed to submit report. Please check your connection.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setPhotoBlob(null);
+    setPhotoPreviewUrl(null);
+    setNotes('');
+    setSubmissionResult(null);
+    setErrorMessage(null);
+    grabLiveGPS();
+  };
+
+  const openNearbyMatch = nearbyHotspots.find(
+    i => i.hotspot.status === 'OPEN' || i.hotspot.status === 'CHRONIC_REOPENED'
+  );
+  const resolvedNearbyMatch = nearbyHotspots.find(i => {
+    if (i.hotspot.status !== 'RESOLVED' || !i.hotspot.resolved_at) return false;
+    const diff = Date.now() - new Date(i.hotspot.resolved_at).getTime();
+    return diff <= 14 * 24 * 60 * 60 * 1000;
+  });
+
+  const filteredPresets = PCMC_PRESETS.filter(p => 
+    p.name.toLowerCase().includes(wardSearchQuery.toLowerCase()) ||
+    p.ward.toLowerCase().includes(wardSearchQuery.toLowerCase()) ||
+    p.zone.toLowerCase().includes(wardSearchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col min-h-full pb-28 pt-2 px-4 max-w-lg mx-auto w-full space-y-3.5">
+      {/* Hidden File Input for Native Camera Snap */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {/* ======================================================== */}
+      {/* 1. LOCALITY & LIVE GPS BAR                               */}
+      {/* ======================================================== */}
+      <div className="flex items-center justify-between text-xs px-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+          {isEditingArea ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={areaName}
+                onChange={(e) => setAreaName(e.target.value)}
+                placeholder="Type street / landmark..."
+                className="bg-slate-900 border border-cyan-500 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setIsEditingArea(false)}
+                className="px-2 py-0.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px]"
+              >
+                Save
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="font-semibold text-slate-200 truncate">
+                {isGeocoding ? (language === 'mr' ? 'अचूक पत्ता शोधत आहे...' : 'Detecting street...') : areaName}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEditingArea(true)}
+                className="p-1 rounded text-slate-400 hover:text-cyan-400 shrink-0"
+                title="Edit street / landmark"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={grabLiveGPS}
+            disabled={isLocating}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all"
+          >
+            <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+            <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowLocationPicker(!showLocationPicker)}
+            className="text-[10px] text-slate-400 hover:text-cyan-400 underline font-semibold"
+          >
+            {showLocationPicker ? t.closeWards : t.switchWard}
+          </button>
+        </div>
+      </div>
+
+      {/* SEARCHABLE WARD PICKER DROPDOWN */}
+      {showLocationPicker && (
+        <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-2 animate-in fade-in duration-150">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+            <input
+              type="text"
+              value={wardSearchQuery}
+              onChange={(e) => setWardSearchQuery(e.target.value)}
+              placeholder="Search Wakad, Nigdi, Pimple Saudagar, Ravet..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-1 no-scrollbar">
+            {filteredPresets.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => {
+                  setLatitude(preset.latitude);
+                  setLongitude(preset.longitude);
+                  setAreaName(`${preset.name}, Pimpri-Chinchwad`);
+                  setIsOutsidePCMC(false);
+                  setShowLocationPicker(false);
+                }}
+                className="text-left p-2 rounded-lg text-[11px] border bg-slate-950 border-slate-800 hover:border-cyan-500/60 text-slate-300 hover:text-white transition-colors"
+              >
+                <div className="font-bold truncate text-white">{preset.name}</div>
+                <div className="text-[9px] text-cyan-400 flex items-center justify-between mt-0.5">
+                  <span>{preset.ward}</span>
+                  <span>{preset.zone}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 2. CAMERA ACTION: LARGE SNAP CIVIC ISSUE BUTTON          */}
+      {/* ======================================================== */}
+      {!photoPreviewUrl ? (
+        <div className="space-y-2.5">
+          <button
+            type="button"
+            onClick={triggerCameraSnap}
+            className="w-full group relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-cyan-950/50 border border-cyan-400/40 flex flex-col items-center justify-center gap-3 active:scale-[0.98] transition-all"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner ring-4 ring-white/20 group-hover:scale-105 transition-transform">
+              <Camera className="w-8 h-8 text-white" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <span className="text-xl font-black tracking-tight block">
+                {t.snapButton}
+              </span>
+              <span className="text-xs text-cyan-100 font-medium block">
+                {t.snapSubtext}
+              </span>
+            </div>
+
+            <div className="mt-1 px-4 py-1.5 rounded-full bg-white/20 text-white font-extrabold text-xs uppercase tracking-wider backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
+              <span>Open Live Camera</span>
+              <span>📷</span>
+            </div>
+          </button>
+
+          {/* Desktop Testing Presets */}
+          <div className="flex items-center justify-between px-1 text-xs">
+            <span className="text-[11px] text-slate-400 flex items-center gap-1 truncate">
+              <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="truncate">{t.testingDesktop}</span>
+            </span>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleUseSamplePhoto('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop')}
+                className="text-[10px] text-cyan-400 bg-cyan-950/60 hover:bg-cyan-900/80 px-2.5 py-1 rounded-lg border border-cyan-800 transition-colors font-medium"
+              >
+                + Pothole Test
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUseSamplePhoto('https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=800&auto=format&fit=crop')}
+                className="text-[10px] text-amber-400 bg-amber-950/60 hover:bg-amber-900/80 px-2.5 py-1 rounded-lg border border-amber-800 transition-colors font-medium"
+              >
+                + Garbage Test
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* PHOTO PREVIEW & RETAKE */
+        <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 aspect-video shadow-lg">
+          <img
+            src={photoPreviewUrl}
+            alt="Snapped civic issue"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-black/30 pointer-events-none" />
+
+          <button
+            type="button"
+            onClick={triggerCameraSnap}
+            className="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-medium flex items-center gap-1.5 shadow-md active:scale-95"
+          >
+            <Camera className="w-3.5 h-3.5 text-cyan-400" />
+            Retake
+          </button>
+
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] text-slate-300">
+            <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+              <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="truncate font-medium">{areaName}</span>
+            </div>
+            <span className="text-[10px] font-mono bg-black/60 px-1.5 py-0.5 rounded text-cyan-300">
+              {latitude.toFixed(4)}, {longitude.toFixed(4)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* OUTSIDE PCMC JURISDICTION NOTICE */}
+      {isOutsidePCMC && (
+        <div className="bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 text-xs text-amber-200 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold text-amber-300 block">
+              Location outside PCMC municipal boundary
+            </span>
+            <span className="text-[11px] text-amber-200/90">
+              You can edit the landmark text or select your target PCMC Prabhag/Ward above.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 3. REPORT FORM (CATEGORY, SUB-TAG, PROXIMITY, NOTE, SUBMIT) */}
+      {/* ======================================================== */}
+      {submissionResult ? (
+        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <h2 className="text-lg font-bold text-white">
+              {submissionResult.actionTaken === 'CORROBORATED' && (language === 'mr' ? 'समस्येला पुष्टी देण्यात आली! (+१)' : 'Issue Corroborated! (+1)')}
+              {submissionResult.actionTaken === 'CHRONIC_REOPENED' && (language === 'mr' ? 'वारंवार होणारी समस्या पुन्हा उघडली!' : 'Chronic Issue Reopened!')}
+              {submissionResult.actionTaken === 'NEW_HOTSPOT' && (language === 'mr' ? 'नवीन नागरी तक्रार नोंदवली!' : 'New Civic Hotspot Logged!')}
+            </h2>
+            <p className="text-xs text-slate-300">
+              {submissionResult.actionTaken === 'CORROBORATED' && (
+                <>Existing hotspot matched within {submissionResult.distanceToExisting}m. Priority escalated with <strong>{submissionResult.hotspot.corroboration_count} citizen verifications</strong>.</>
+              )}
+              {submissionResult.actionTaken === 'CHRONIC_REOPENED' && (
+                <>Resolved issue recurred within 14 days (at {submissionResult.distanceToExisting}m). Flagged as <strong>CHRONIC_REOPENED</strong> for municipal audit.</>
+              )}
+              {submissionResult.actionTaken === 'NEW_HOTSPOT' && (
+                <>Assigned SLA of <strong>{submissionResult.hotspot.sla_hours} hours</strong> for municipal resolution at {submissionResult.hotspot.area_name}.</>
+              )}
+            </p>
+          </div>
+
+          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs space-y-2">
+            <div className="flex justify-between items-center text-slate-400">
+              <span>Category:</span>
+              <span className="font-semibold text-white">{submissionResult.hotspot.category} • {submissionResult.hotspot.sub_tag}</span>
+            </div>
+            <div className="flex justify-between items-center text-slate-400">
+              <span>Location:</span>
+              <span className="font-semibold text-slate-200 truncate max-w-[200px]">{submissionResult.hotspot.area_name}</span>
+            </div>
+            <div className="flex justify-between items-center text-slate-400">
+              <span>Status:</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                submissionResult.hotspot.status === 'OPEN' ? 'bg-amber-500/20 text-amber-300' :
+                submissionResult.hotspot.status === 'CHRONIC_REOPENED' ? 'bg-rose-500/20 text-rose-300' :
+                'bg-emerald-500/20 text-emerald-300'
+              }`}>
+                {submissionResult.hotspot.status}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-400">
+              <span>Citizen Confirmations:</span>
+              <span className="text-cyan-400 font-semibold">{submissionResult.hotspot.corroboration_count} Citizens</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {language === 'mr' ? 'दुसरी तक्रार करा' : 'Snap Another'}
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateToMap(submissionResult.hotspot.id)}
+              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/25 transition-all"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              {language === 'mr' ? 'नकाशावर पहा' : 'View on Map'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {/* CATEGORY ICON CARDS */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+              {t.categoryLabel}
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              {(Object.keys(CATEGORIES) as Category[]).map((catKey) => {
+                const cat = CATEGORIES[catKey];
+                const isSelected = selectedCategory === catKey;
+
+                return (
+                  <button
+                    key={catKey}
+                    type="button"
+                    onClick={() => handleCategorySelect(catKey)}
+                    className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-slate-800/95 border-cyan-500 ring-2 ring-cyan-500/30 shadow-lg'
+                        : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`p-2 rounded-xl ${cat.bgColor} ${cat.color}`}>
+                        {catKey === 'Garbage' && <Trash2 className="w-5 h-5" />}
+                        {catKey === 'Drainage' && <Droplets className="w-5 h-5" />}
+                        {catKey === 'Pothole' && <AlertTriangle className="w-5 h-5" />}
+                        {catKey === 'Streetlight' && <Lightbulb className="w-5 h-5" />}
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        isSelected ? 'bg-cyan-950 text-cyan-300 border-cyan-700' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      }`}>
+                        {cat.slaHours}h SLA
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="font-bold text-sm text-white flex items-center justify-between">
+                        {t.categories[catKey] || cat.name}
+                        {isSelected && <Check className="w-4 h-4 text-cyan-400" />}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
+                        {cat.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* QUICK SUB-TAG PILLS */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+              {t.subTagLabel} ({t.categories[selectedCategory] || selectedCategory})
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {CATEGORIES[selectedCategory].subTags.map((tag) => {
+                const isSelected = selectedSubTag === tag;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setSelectedSubTag(tag)}
+                    className={`py-2 px-2.5 rounded-xl text-center text-xs font-medium border transition-all ${
+                      isSelected
+                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-semibold shadow-md shadow-cyan-500/20'
+                        : 'bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* PROXIMITY DETECTION ALERT (20-meter Haversine Logic) */}
+          {openNearbyMatch && (
+            <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-300 block">
+                  ⚡ Existing {selectedCategory} issue detected ({openNearbyMatch.distance}m away)
+                </span>
+                <span className="text-[11px] text-amber-200/90">
+                  Submitting will <strong>Corroborate (+1)</strong> this open hotspot ({openNearbyMatch.hotspot.corroboration_count} citizens already confirmed).
+                </span>
+              </div>
+            </div>
+          )}
+
+          {resolvedNearbyMatch && !openNearbyMatch && (
+            <div className="bg-rose-950/40 border border-rose-500/50 rounded-xl p-3 text-xs text-rose-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-rose-300 block">
+                  ⚠️ Recently resolved {selectedCategory} detected ({resolvedNearbyMatch.distance}m away)
+                </span>
+                <span className="text-[11px] text-rose-200/90">
+                  Closed within 14 days. Submitting will flag it as <strong>CHRONIC_REOPENED</strong> for municipal scrutiny.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* OPTIONAL 1-LINE NOTE + QUICK PHRASES */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+              {t.landmarkNoteLabel}
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t.landmarkPlaceholder}
+              maxLength={140}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+            />
+
+            {/* Quick Phrase Chips */}
+            <div className="space-y-1">
+              <span className="text-[10px] text-slate-400 font-medium">{t.quickPhrases}</span>
+              <div className="flex flex-wrap gap-1.5">
+                {quickPhrasesByCategory[selectedCategory].map((phrase) => (
+                  <button
+                    key={phrase}
+                    type="button"
+                    onClick={() => appendQuickPhrase(phrase)}
+                    className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-[10px] text-slate-300 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                  >
+                    <Plus className="w-2.5 h-2.5 text-cyan-400" />
+                    <span>{phrase}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ERROR ALERT */}
+          {errorMessage && (
+            <div className="p-3 bg-rose-950/50 border border-rose-800 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* SUBMIT BUTTON */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white shadow-xl transition-all flex items-center justify-center gap-2 ${
+              isSubmitting
+                ? 'bg-slate-700 cursor-not-allowed opacity-75'
+                : 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-600/30 active:scale-[0.98]'
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                <span>Processing & Geotagging...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  {openNearbyMatch ? t.corroborateSubmit : 
+                   resolvedNearbyMatch ? t.reopenSubmit : 
+                   t.submitReport}
+                </span>
+              </>
+            )}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+};
