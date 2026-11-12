@@ -11,7 +11,6 @@ import {
   Sparkles, 
   Check, 
   Crosshair, 
-  Info,
   Plus,
   Edit2,
   Search,
@@ -248,19 +247,6 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
     }
   };
 
-  const handleUseSamplePhoto = (sampleUrl: string) => {
-    fetch(sampleUrl)
-      .then(res => res.blob())
-      .then(blob => {
-        setPhotoBlob(blob);
-        setPhotoPreviewUrl(sampleUrl);
-        setSubmissionResult(null);
-      })
-      .catch(() => {
-        setPhotoPreviewUrl(sampleUrl);
-      });
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!photoBlob && !photoPreviewUrl) {
@@ -488,55 +474,29 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       {/* 3. CAMERA ACTION: LARGE SNAP CIVIC ISSUE BUTTON          */}
       {/* ======================================================== */}
       {!photoPreviewUrl ? (
-        <div className="space-y-2.5">
-          <button
-            type="button"
-            onClick={triggerCameraSnap}
-            className="w-full group relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-cyan-950/50 border border-cyan-400/40 flex flex-col items-center justify-center gap-3 active:scale-[0.98] transition-all"
-          >
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner ring-4 ring-white/20 group-hover:scale-105 transition-transform">
-              <Camera className="w-8 h-8 text-white" />
-            </div>
-
-            <div className="text-center space-y-1">
-              <span className="text-xl font-black tracking-tight block">
-                {t.snapButton}
-              </span>
-              <span className="text-xs text-cyan-100 font-medium block">
-                {t.snapSubtext}
-              </span>
-            </div>
-
-            <div className="mt-1 px-4 py-1.5 rounded-full bg-white/20 text-white font-extrabold text-xs uppercase tracking-wider backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
-              <span>Open Live Camera</span>
-              <span>📷</span>
-            </div>
-          </button>
-
-          {/* Desktop Testing Presets */}
-          <div className="flex items-center justify-between px-1 text-xs">
-            <span className="text-[11px] text-slate-400 flex items-center gap-1 truncate">
-              <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">{t.testingDesktop}</span>
-            </span>
-            <div className="flex gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleUseSamplePhoto('https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop')}
-                className="text-[10px] text-cyan-400 bg-cyan-950/60 hover:bg-cyan-900/80 px-2.5 py-1 rounded-lg border border-cyan-800 transition-colors font-medium"
-              >
-                + Pothole Test
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUseSamplePhoto('https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=800&auto=format&fit=crop')}
-                className="text-[10px] text-amber-400 bg-amber-950/60 hover:bg-amber-900/80 px-2.5 py-1 rounded-lg border border-amber-800 transition-colors font-medium"
-              >
-                + Garbage Test
-              </button>
-            </div>
+        <button
+          type="button"
+          onClick={triggerCameraSnap}
+          className="w-full group relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-cyan-950/50 border border-cyan-400/40 flex flex-col items-center justify-center gap-3 active:scale-[0.98] transition-all"
+        >
+          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner ring-4 ring-white/20 group-hover:scale-105 transition-transform">
+            <Camera className="w-8 h-8 text-white" />
           </div>
-        </div>
+
+          <div className="text-center space-y-1">
+            <span className="text-xl font-black tracking-tight block">
+              {t.snapButton}
+            </span>
+            <span className="text-xs text-cyan-100 font-medium block">
+              {t.snapSubtext}
+            </span>
+          </div>
+
+          <div className="mt-1 px-4 py-1.5 rounded-full bg-white/20 text-white font-extrabold text-xs uppercase tracking-wider backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
+            <span>Open Live Camera</span>
+            <span>📷</span>
+          </div>
+        </button>
       ) : (
         /* PHOTO PREVIEW & RETAKE */
         <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 aspect-video shadow-lg">
