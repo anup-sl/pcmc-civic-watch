@@ -14,7 +14,14 @@ interface SampleItem {
   resolved_at?: string;
 }
 
-export async function seedSampleDataIfEmpty() {
+/**
+ * Manual seed utility. Auto-seeding on app startup is disabled so truncated
+ * tables remain completely empty for production use.
+ */
+export async function seedSampleDataIfEmpty(force = false) {
+  if (!force) {
+    return;
+  }
   try {
     const { count, error } = await supabase
       .from('hotspots')

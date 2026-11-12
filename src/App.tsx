@@ -5,7 +5,6 @@ import { LeaderboardTab } from './components/LeaderboardTab';
 import { BottomNav, type TabKey } from './components/BottomNav';
 import { DirectoryModal } from './components/DirectoryModal';
 import { InstallPrompt } from './components/InstallPrompt';
-import { seedSampleDataIfEmpty } from './utils/seedData';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
 import { PhoneCall } from 'lucide-react';
@@ -19,9 +18,8 @@ export function App() {
 
   const t = TRANSLATIONS[language];
 
-  // Seed initial sample data if table has 0 records
+  // Load saved language preference
   useEffect(() => {
-    seedSampleDataIfEmpty();
     const savedLang = localStorage.getItem('pcmc_civicwatch_lang') as Language;
     if (savedLang === 'en' || savedLang === 'mr') {
       setLanguage(savedLang);
