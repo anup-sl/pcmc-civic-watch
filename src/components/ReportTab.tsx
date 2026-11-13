@@ -16,7 +16,9 @@ import {
   Search,
   ShieldAlert,
   HelpCircle,
-  Flag
+  Flag,
+  Users,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CATEGORIES } from '../types';
@@ -24,7 +26,9 @@ import type { Category, Hotspot } from '../types';
 import { submitCivicReport, supabase, haversineDistanceMeters } from '../supabase';
 import type { SubmitReportResult } from '../supabase';
 import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation } from '../utils/geo';
+import { getWardForArea } from '../utils/pcmcDirectory';
 import { FlagModal } from './FlagModal';
+import { CorporatorSection } from './CorporatorSection';
 import { analyzeImageContent } from '../utils/contentModeration';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
@@ -69,6 +73,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const [isScanningImage, setIsScanningImage] = useState<boolean>(false);
   const [imageScanError, setImageScanError] = useState<{ reason: string; marathiReason: string } | null>(null);
   const [isManualArea, setIsManualArea] = useState<boolean>(false);
+  const [showCorporatorsModal, setShowCorporatorsModal] = useState<boolean>(false);
 
   // Quick Phrases
   const quickPhrasesByCategory: Record<Category, string[]> = {
@@ -337,6 +342,8 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
     p.zone.toLowerCase().includes(wardSearchQuery.toLowerCase())
   );
 
+  const activeWard = getWardForArea(areaName, latitude, longitude);
+
   return (
     <div className="flex flex-col min-h-full pb-28 pt-2 px-4 max-w-lg mx-auto w-full space-y-3.5">
       {/* Hidden File Input for Native Camera Snap */}
@@ -413,6 +420,16 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             className="text-[10px] text-slate-400 hover:text-cyan-400 underline font-semibold"
           >
             {showLocationPicker ? t.closeWards : t.switchWard}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowCorporatorsModal(true)}
+            className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 shadow-xs active:scale-95 transition-all"
+            title="View Elected Corporators for this location"
+          >
+            <Users className="w-3 h-3 text-cyan-400" />
+            <span>{activeWard.badge} {language === 'mr' ? 'नगरसेवक' : 'Corporators'}</span>
           </button>
         </div>
       </div>
@@ -867,6 +884,52 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           language={language}
           onClose={() => setShowFlagInfoModal(false)}
         />
+      )}
+
+      {/* Local Corporators Modal */}
+      {showCorporatorsModal && (
+        <div 
+          className="fixed inset-0 z-[1200] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150"
+          onClick={() => setShowCorporatorsModal(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[85vh] overflow-y-auto no-scrollbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {language === 'mr' ? 'स्थानिक लोकप्रतिनिधी (नगरसेवक)' : 'Elected Ward Corporators'}
+                  </h3>
+                  <p className="text-[11px] text-cyan-400 font-medium">
+                    {activeWard.wardLabel} • {activeWard.zone}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCorporatorsModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <CorporatorSection
+              wardNo={activeWard.wardNo}
+              wardLocality={activeWard.locality}
+              zone={activeWard.zone}
+              language={language}
+              collapsible={false}
+              showWardSwitcher={true}
+              title={language === 'mr' ? `प्रभाग ${activeWard.wardNo} चे अधिकृत नगरसेवक` : `Ward ${activeWard.wardNo} Corporators`}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

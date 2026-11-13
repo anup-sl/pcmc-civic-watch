@@ -1,15 +1,17 @@
 import { X, Phone, Mail, ExternalLink, ShieldCheck, ShieldAlert, UserCheck } from 'lucide-react';
 import { ZONAL_OFFICES, PCMC_SARATHI } from '../utils/pcmcDirectory';
 import { PCMC_ESCALATION_CONFIG } from '../config/escalationConfig';
+import { CorporatorSection } from './CorporatorSection';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
 interface DirectoryModalProps {
   language: Language;
   onClose: () => void;
+  initialWardNo?: number | string;
 }
 
-export const DirectoryModal = ({ language, onClose }: DirectoryModalProps) => {
+export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: DirectoryModalProps) => {
   const t = TRANSLATIONS[language];
   const leadership = PCMC_ESCALATION_CONFIG.escalation_leadership;
   const categories = PCMC_ESCALATION_CONFIG.categories;
@@ -70,6 +72,15 @@ export const DirectoryModal = ({ language, onClose }: DirectoryModalProps) => {
             </a>
           </div>
         </div>
+
+        {/* PCMC Corporators Section (As per location with 32-Ward Switcher) */}
+        <CorporatorSection
+          wardNo={initialWardNo}
+          language={language}
+          collapsible={false}
+          showWardSwitcher={true}
+          title={language === 'mr' ? 'प्रभागानुसार अधिकृत नगरसेवक (३२ प्रभाग)' : 'Official PCMC Corporators (32 Wards)'}
+        />
 
         {/* Escalation Leadership Contacts */}
         <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">

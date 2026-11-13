@@ -10,6 +10,7 @@ import { InstallPrompt } from './components/InstallPrompt';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
 import { PhoneCall, MessageSquareHeart } from 'lucide-react';
+import { getWardForArea } from './utils/pcmcDirectory';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('report');
@@ -20,8 +21,25 @@ export function App() {
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [showModeratorPortal, setShowModeratorPortal] = useState<boolean>(false);
   const [logoClicks, setLogoClicks] = useState<number>(0);
+  const [detectedWardNo, setDetectedWardNo] = useState<number | string>(16);
 
   const t = TRANSLATIONS[language];
+
+  // Auto-detect user ward for directory preselection
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const ward = getWardForArea('', pos.coords.latitude, pos.coords.longitude);
+          if (ward && ward.wardNo) {
+            setDetectedWardNo(ward.wardNo);
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+  }, []);
 
   // Auto-open moderator portal if ?admin or ?mod in URL or via custom event
   useEffect(() => {
@@ -190,6 +208,7 @@ export function App() {
       {showDirectoryModal && (
         <DirectoryModal
           language={language}
+          initialWardNo={detectedWardNo}
           onClose={() => setShowDirectoryModal(false)}
         />
       )}

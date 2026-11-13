@@ -12,7 +12,8 @@ import {
   ChevronDown,
   X,
   Map,
-  Phone
+  Phone,
+  Users
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import type { Hotspot } from '../types';
@@ -21,6 +22,7 @@ import { getWardForArea, ZONAL_OFFICES } from '../utils/pcmcDirectory';
 import type { WardInfo } from '../utils/pcmcDirectory';
 import { exportHotspotsToCSV } from '../utils/csvExport';
 import { DirectoryModal } from './DirectoryModal';
+import { CorporatorSection } from './CorporatorSection';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
@@ -47,6 +49,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
   const [loading, setLoading] = useState<boolean>(true);
   const [sortBy, setSortBy] = useState<'overdue' | 'open' | 'resolutionRate' | 'total'>('overdue');
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
+  const [expandedCorporatorsWard, setExpandedCorporatorsWard] = useState<string | null>(null);
 
   // Ward Filter State: 'ALL' represents "All Wards (32)" city-wide view
   const [selectedWardFilter, setSelectedWardFilter] = useState<string>('ALL');
@@ -344,6 +347,31 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
         </div>
       )}
 
+      {/* ELECTED CORPORATORS SECTION (When specific ward is selected) */}
+      {selectedWardFilter !== 'ALL' && activeWardInfo && (
+        <CorporatorSection
+          wardNo={activeWardInfo.wardNo}
+          wardLocality={activeWardInfo.locality}
+          zone={activeWardInfo.zone}
+          language={language}
+          collapsible={true}
+          defaultExpanded={true}
+        />
+      )}
+
+      {/* GPS-DETECTED LOCAL CORPORATORS (When viewing All Wards) */}
+      {selectedWardFilter === 'ALL' && gpsWardInfo && (
+        <CorporatorSection
+          wardNo={gpsWardInfo.wardNo}
+          wardLocality={gpsWardInfo.locality}
+          zone={gpsWardInfo.zone}
+          language={language}
+          collapsible={true}
+          defaultExpanded={false}
+          title={language === 'mr' ? `📍 तुमच्या परिसरातील नगरसेवक (${gpsWardInfo.locality})` : `📍 Corporators For Your Location (${gpsWardInfo.locality})`}
+        />
+      )}
+
       {/* ======================================================== */}
       {/* 3. UNIFIED 3-COLUMN SUMMARY STRIP                        */}
       {/* ======================================================== */}
@@ -523,13 +551,50 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                       ))}
                     </div>
 
-                    {onNavigateToMap && (
-                      <span className="text-cyan-400 group-hover:underline flex items-center gap-0.5 shrink-0 ml-2 font-medium">
-                        <Map className="w-2.5 h-2.5" />
-                        <span>Map</span>
-                      </span>
-                    )}
+                    {/* Corporators Action & Map Quick Action */}
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedCorporatorsWard(expandedCorporatorsWard === area.wardInfo.wardNo ? null : area.wardInfo.wardNo);
+                        }}
+                        className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 hover:underline bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800"
+                        title="View Elected Corporators"
+                      >
+                        <Users className="w-2.5 h-2.5" />
+                        <span>
+                          {expandedCorporatorsWard === area.wardInfo.wardNo 
+                            ? (language === 'mr' ? 'बंद करा' : 'Hide') 
+                            : (language === 'mr' ? 'नगरसेवक (४)' : 'Corporators (4)')}
+                        </span>
+                      </button>
+
+                      {onNavigateToMap && (
+                        <span className="text-cyan-400 group-hover:underline flex items-center gap-0.5 shrink-0 font-medium">
+                          <Map className="w-2.5 h-2.5" />
+                          <span>Map</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Inline Expanded Corporators Section */}
+                  {expandedCorporatorsWard === area.wardInfo.wardNo && (
+                    <div 
+                      className="mt-2.5 pt-2 border-t border-slate-800 animate-in fade-in duration-150"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <CorporatorSection
+                        wardNo={area.wardInfo.wardNo}
+                        wardLocality={area.wardInfo.locality}
+                        zone={area.wardInfo.zone}
+                        language={language}
+                        collapsible={false}
+                        defaultExpanded={true}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -704,6 +769,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
       {showDirectoryModal && (
         <DirectoryModal
           language={language}
+          initialWardNo={activeWardInfo?.wardNo || gpsWardInfo?.wardNo || 16}
           onClose={() => setShowDirectoryModal(false)}
         />
       )}
