@@ -27,7 +27,7 @@ interface ModeratorPortalProps {
   onClose: () => void;
 }
 
-const DEFAULT_MODERATOR_PIN = 'PCMC-ADMIN-2026';
+const MODERATOR_PIN = (import.meta.env.VITE_MODERATOR_PIN || 'PCMC-ADMIN-2026').trim().toUpperCase();
 
 export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
   const [pinInput, setPinInput] = useState<string>('');
@@ -51,7 +51,7 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim().toUpperCase() === DEFAULT_MODERATOR_PIN) {
+    if (pinInput.trim().toUpperCase() === MODERATOR_PIN) {
       setIsAuthenticated(true);
       sessionStorage.setItem('pcmc_mod_auth', 'true');
       setPinError(null);
@@ -208,8 +208,9 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
                 type="password"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Enter PIN (Default: PCMC-ADMIN-2026)"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500"
+                placeholder="Enter access PIN..."
+                autoComplete="current-password"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm font-mono tracking-widest text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                 autoFocus
               />
               {pinError && (
