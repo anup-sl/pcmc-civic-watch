@@ -1,4 +1,4 @@
-export type Category = 'Garbage' | 'Drainage' | 'Pothole' | 'Streetlight' | 'Encroachment';
+export type Category = 'Garbage' | 'Drainage' | 'Pothole' | 'Streetlight' | 'Encroachment' | 'Other';
 
 export type HotspotStatus = 'OPEN' | 'CHRONIC_REOPENED' | 'RESOLVED';
 
@@ -129,5 +129,24 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Unauthorised Parking / Stand'
     ],
     description: 'Footpath blocked or illegal public land occupation'
+  },
+  Other: {
+    name: 'Other',
+    slaHours: 48,
+    iconName: 'HelpCircle',
+    color: 'text-teal-400',
+    bgColor: 'bg-teal-500/10 hover:bg-teal-500/20',
+    borderColor: 'border-teal-500/40',
+    subTags: [
+      'PCMC Sarathi Portal Not Working',
+      'Property Tax Online Portal Error',
+      'Water Bill Payment Issue',
+      'Setu / Citizen Facility Center Issue',
+      'Noise / Loudspeaker Nuisance',
+      'Stray Animals / Cattle Hazard',
+      'Public Garden / Park Maintenance',
+      'General Civic Grievance / Other'
+    ],
+    description: 'Sarathi portal, e-governance, parks, or unlisted issue'
   }
 };

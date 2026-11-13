@@ -62,8 +62,11 @@ export const TRANSLATIONS = {
       Drainage: "Water / Drainage",
       Pothole: "Potholes / Roads",
       Streetlight: "Streetlights / Electricity",
-      Encroachment: "Illegal Encroachment"
-    }
+      Encroachment: "Illegal Encroachment",
+      Other: "Other / E-Gov & Sarathi"
+    },
+    feedbackTitle: "Share Feedback & Improve Portal",
+    feedbackSub: "Help us make PCMC CivicWatch better for citizens"
   },
   mr: {
     appName: "नागरिक वॉच PCMC",
@@ -126,7 +129,10 @@ export const TRANSLATIONS = {
       Drainage: "पाणी व ड्रेनेज",
       Pothole: "खड्डे व रस्ते",
       Streetlight: "पथदिवे व वीज",
-      Encroachment: "अनधिकृत अतिक्रमण"
-    }
+      Encroachment: "अनधिकृत अतिक्रमण",
+      Other: "इतर / ई-प्रशासन व सारथी"
+    },
+    feedbackTitle: "अभिप्राय व सूचना पाठवा",
+    feedbackSub: "नागरिक पोर्टल सुधारण्यासाठी आपल्या सूचना सांगा"
   }
 };

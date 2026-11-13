@@ -4,10 +4,11 @@ import { MapTab } from './components/MapTab';
 import { LeaderboardTab } from './components/LeaderboardTab';
 import { BottomNav, type TabKey } from './components/BottomNav';
 import { DirectoryModal } from './components/DirectoryModal';
+import { FeedbackModal } from './components/FeedbackModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
-import { PhoneCall } from 'lucide-react';
+import { PhoneCall, MessageSquareHeart } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('report');
@@ -15,6 +16,7 @@ export function App() {
   const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
   const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
 
   const t = TRANSLATIONS[language];
 
@@ -73,6 +75,17 @@ export function App() {
 
           {/* Right Header Controls: Directory Pill & EN | मराठी Toggle */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Feedback button */}
+            <button
+              type="button"
+              onClick={() => setShowFeedbackModal(true)}
+              className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-pink-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
+              title="Share Feedback / Suggestions"
+            >
+              <MessageSquareHeart className="w-3.5 h-3.5 text-pink-400" />
+              <span className="hidden sm:inline text-[11px]">{language === 'mr' ? 'अभिप्राय' : 'Feedback'}</span>
+            </button>
+
             {/* Help / Directory button */}
             <button
               type="button"
@@ -146,6 +159,14 @@ export function App() {
         <DirectoryModal
           language={language}
           onClose={() => setShowDirectoryModal(false)}
+        />
+      )}
+
+      {/* Citizen Feedback Modal */}
+      {showFeedbackModal && (
+        <FeedbackModal
+          language={language}
+          onClose={() => setShowFeedbackModal(false)}
         />
       )}
     </div>

@@ -15,7 +15,8 @@ import {
   Edit2,
   Search,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  HelpCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CATEGORIES } from '../types';
@@ -135,6 +136,12 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       'Unauthorized tin shed erected on public walkway',
       'Commercial banners and advertising boards blocking road visibility',
       'Construction debris and vehicles blocking pedestrian access'
+    ],
+    Other: [
+      'PCMC Sarathi portal timing out / grievance submission failing',
+      'Online property tax / water bill receipt not generating after transaction',
+      'Public park equipment broken and garden unmaintained',
+      'Noise pollution / loud music disturbance in residential area'
     ]
   };
 
@@ -630,11 +637,10 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
             <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
               {t.categoryLabel}
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(Object.keys(CATEGORIES) as Category[]).map((catKey) => {
                 const cat = CATEGORIES[catKey];
                 const isSelected = selectedCategory === catKey;
-                const isEncroachment = catKey === 'Encroachment';
 
                 return (
                   <button
@@ -642,8 +648,6 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
                     type="button"
                     onClick={() => handleCategorySelect(catKey)}
                     className={`relative p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                      isEncroachment ? 'col-span-2 sm:col-span-1' : ''
-                    } ${
                       isSelected
                         ? 'bg-slate-800/95 border-cyan-500 ring-2 ring-cyan-500/30 shadow-lg'
                         : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
@@ -656,6 +660,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
                         {catKey === 'Pothole' && <AlertTriangle className="w-4 h-4" />}
                         {catKey === 'Streetlight' && <Lightbulb className="w-4 h-4" />}
                         {catKey === 'Encroachment' && <ShieldAlert className="w-4 h-4" />}
+                        {catKey === 'Other' && <HelpCircle className="w-4 h-4" />}
                       </div>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
                         isSelected ? 'bg-cyan-950 text-cyan-300 border-cyan-700' : 'bg-slate-950 text-slate-400 border-slate-800'

@@ -153,6 +153,31 @@ export const PCMC_ESCALATION_CONFIG = {
         "v.suryawanshi@pcmcindia.gov.in",
         "m.lonkar@pcmcindia.gov.in"
       ]
+    },
+    OTHER: {
+      display_name: "PCMC Sarathi, E-Gov & Other Civic Issues",
+      department: "E-Governance & Central Grievance Cell",
+      sla_hours: 48,
+      merge_radius_meters: 10,
+      recurrence_window_days: 14,
+      primary_official: {
+        name: "Sarathi Grievance & E-Gov Nodal Desk",
+        role: "Central Grievance & Information Technology",
+        to_emails: [
+          "sarathi@pcmcindia.gov.in",
+          "egov@pcmcindia.gov.in"
+        ],
+        phone: "8888006666"
+      },
+      cc_initial: [
+        "sarathi@pcmcindia.gov.in",
+        "egov@pcmcindia.gov.in"
+      ],
+      cc_overdue_escalation: [
+        "commissioner@pcmcindia.gov.in",
+        "v.suryawanshi@pcmcindia.gov.in",
+        "m.lonkar@pcmcindia.gov.in"
+      ]
     }
   },
   zonal_offices: {
@@ -171,6 +196,7 @@ export function getCategoryEscalationConfig(category: Category | string) {
   if (norm.includes('DRAINAGE') || norm.includes('WATER')) return PCMC_ESCALATION_CONFIG.categories.DRAINAGE;
   if (norm.includes('STREETLIGHT') || norm.includes('LIGHT') || norm.includes('ELECTRIC')) return PCMC_ESCALATION_CONFIG.categories.STREETLIGHT;
   if (norm.includes('ENCROACH') || norm.includes('HAWKER') || norm.includes('FOOTPATH')) return PCMC_ESCALATION_CONFIG.categories.ENCROACHMENT;
+  if (norm.includes('OTHER') || norm.includes('SARATHI') || norm.includes('EGOV') || norm.includes('PORTAL')) return PCMC_ESCALATION_CONFIG.categories.OTHER;
   return PCMC_ESCALATION_CONFIG.categories.POTHOLE;
 }
 
