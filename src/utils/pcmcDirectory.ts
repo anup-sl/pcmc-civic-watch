@@ -171,11 +171,21 @@ export function getZoneForArea(areaName: string, lat?: number, lon?: number): Zo
     cleaned = estimatePCMCArea(lat, lon).toLowerCase();
   }
 
-  // Zone A: Kiwale, Ravet, Mukai Chowk, Nigdi, Akurdi, Pradhikaran, Chinchwad Station
+  // Zone J: Kiwale, Ravet, Mukai Chowk, Mamurdi, Punawale, Tathawade (Wards 16, 25, 26)
   if (
     cleaned.includes('kiwale') ||
     cleaned.includes('ravet') ||
     cleaned.includes('mukai') ||
+    cleaned.includes('mamurdi') ||
+    cleaned.includes('punawale') ||
+    cleaned.includes('tathawade')
+  ) {
+    const zoneJ = ZONAL_OFFICES.find(z => z.zone === 'Zone J');
+    if (zoneJ) return zoneJ;
+  }
+
+  // Zone A: Nigdi, Akurdi, Pradhikaran, Chinchwad Station, Mohannagar (Wards 13, 14, 15)
+  if (
     cleaned.includes('nigdi') ||
     cleaned.includes('akurdi') ||
     cleaned.includes('pradhikaran') ||
@@ -241,31 +251,31 @@ export function getWardForArea(areaName: string, lat?: number, lon?: number): Wa
   }
 
   if (cleaned.includes('kiwale') || cleaned.includes('ravet') || cleaned.includes('mukai')) {
-    return { wardNo: '16', badge: 'W-16', locality: 'Kiwale / Ravet', wardLabel: 'Ward 16 (Kiwale / Ravet)', marathiWardLabel: 'प्रभाग १६ (किवळे / रावेत)', zone: 'Zone A', marathiZone: 'क्षेत्रीय अ' };
+    return { wardNo: '16', badge: 'W-16', locality: 'Kiwale / Ravet / Mukai Chowk', wardLabel: 'Ward 16 (Kiwale / Ravet)', marathiWardLabel: 'प्रभाग १६ (किवळे / रावेत / मुकाई चौक)', zone: 'Zone J', marathiZone: 'ज क्षेत्रीय कार्यालय (रायगड)' };
   }
   if (cleaned.includes('nigdi') || cleaned.includes('pradhikaran')) {
-    return { wardNo: '14', badge: 'W-14', locality: 'Nigdi / Pradhikaran', wardLabel: 'Ward 14 (Nigdi / Pradhikaran)', marathiWardLabel: 'प्रभाग १४ (निगडी / प्राधिकरण)', zone: 'Zone A', marathiZone: 'क्षेत्रीय अ' };
+    return { wardNo: '14', badge: 'W-14', locality: 'Nigdi / Pradhikaran', wardLabel: 'Ward 14 (Nigdi / Pradhikaran)', marathiWardLabel: 'प्रभाग १४ (निगडी / प्राधिकरण)', zone: 'Zone A', marathiZone: 'अ क्षेत्रीय कार्यालय (राजगड)' };
   }
   if (cleaned.includes('akurdi')) {
-    return { wardNo: '15', badge: 'W-15', locality: 'Akurdi', wardLabel: 'Ward 15 (Akurdi)', marathiWardLabel: 'प्रभाग १५ (आकुर्डी)', zone: 'Zone A', marathiZone: 'क्षेत्रीय अ' };
+    return { wardNo: '15', badge: 'W-15', locality: 'Akurdi', wardLabel: 'Ward 15 (Akurdi)', marathiWardLabel: 'प्रभाग १५ (आकुर्डी)', zone: 'Zone A', marathiZone: 'अ क्षेत्रीय कार्यालय (राजगड)' };
   }
   if (cleaned.includes('chinchwad station')) {
-    return { wardNo: '19', badge: 'W-19', locality: 'Chinchwad Station', wardLabel: 'Ward 19 (Chinchwad Station)', marathiWardLabel: 'प्रभाग १९ (चिंचवड स्टेशन)', zone: 'Zone A', marathiZone: 'क्षेत्रीय अ' };
+    return { wardNo: '19', badge: 'W-19', locality: 'Chinchwad Station', wardLabel: 'Ward 19 (Chinchwad Station)', marathiWardLabel: 'प्रभाग १९ (चिंचवड स्टेशन)', zone: 'Zone B', marathiZone: 'ब क्षेत्रीय कार्यालय (सिंहगड)' };
   }
   if (cleaned.includes('thergaon')) {
-    return { wardNo: '23', badge: 'W-23', locality: 'Thergaon', wardLabel: 'Ward 23 (Thergaon / Dange Chowk)', marathiWardLabel: 'प्रभाग २३ (थेरगाव / डांगे चौक)', zone: 'Zone B', marathiZone: 'क्षेत्रीय ब' };
+    return { wardNo: '23', badge: 'W-23', locality: 'Thergaon', wardLabel: 'Ward 23 (Thergaon / Dange Chowk)', marathiWardLabel: 'प्रभाग २३ (थेरगाव / डांगे चौक)', zone: 'Zone G', marathiZone: 'ग क्षेत्रीय कार्यालय (पुरंदर)' };
   }
   if (cleaned.includes('kalewadi')) {
-    return { wardNo: '22', badge: 'W-22', locality: 'Kalewadi', wardLabel: 'Ward 22 (Kalewadi)', marathiWardLabel: 'प्रभाग २२ (काळेवाडी)', zone: 'Zone B', marathiZone: 'क्षेत्रीय ब' };
+    return { wardNo: '22', badge: 'W-22', locality: 'Kalewadi', wardLabel: 'Ward 22 (Kalewadi)', marathiWardLabel: 'प्रभाग २२ (काळेवाडी)', zone: 'Zone G', marathiZone: 'ग क्षेत्रीय कार्यालय (पुरंदर)' };
   }
   if (cleaned.includes('rahatani')) {
-    return { wardNo: '28', badge: 'W-28', locality: 'Rahatani', wardLabel: 'Ward 28 (Rahatani)', marathiWardLabel: 'प्रभाग २८ (रहाटणी)', zone: 'Zone B', marathiZone: 'क्षेत्रीय ब' };
+    return { wardNo: '28', badge: 'W-28', locality: 'Rahatani', wardLabel: 'Ward 28 (Rahatani)', marathiWardLabel: 'प्रभाग २८ (रहाटणी)', zone: 'Zone D', marathiZone: 'ड क्षेत्रीय कार्यालय (देवगिरी)' };
   }
   if (cleaned.includes('chinchwadgaon') || cleaned.includes('chinchwad gaon') || /\bchinchwad\b/.test(cleaned)) {
-    return { wardNo: '17', badge: 'W-17', locality: 'Chinchwadgaon', wardLabel: 'Ward 17 (Chinchwadgaon)', marathiWardLabel: 'प्रभाग १७ (चिंचवडगाव)', zone: 'Zone B', marathiZone: 'क्षेत्रीय ब' };
+    return { wardNo: '17', badge: 'W-17', locality: 'Chinchwadgaon', wardLabel: 'Ward 17 (Chinchwadgaon)', marathiWardLabel: 'प्रभाग १७ (चिंचवडगाव)', zone: 'Zone B', marathiZone: 'ब क्षेत्रीय कार्यालय (सिंहगड)' };
   }
   if (cleaned.includes('wakad') || cleaned.includes('tathawade') || cleaned.includes('punawale')) {
-    return { wardNo: '25', badge: 'W-25', locality: 'Wakad / Tathawade', wardLabel: 'Ward 25 (Wakad / Tathawade)', marathiWardLabel: 'प्रभाग २५ (वाकड / ताथवडे)', zone: 'Zone D', marathiZone: 'क्षेत्रीय ड' };
+    return { wardNo: '25', badge: 'W-25', locality: 'Wakad / Tathawade / Punawale', wardLabel: 'Ward 25 (Wakad / Tathawade)', marathiWardLabel: 'प्रभाग २५ (वाकड / ताथवडे / पुनावळे)', zone: 'Zone J', marathiZone: 'ज क्षेत्रीय कार्यालय (रायगड)' };
   }
   if (cleaned.includes('saudagar')) {
     return { wardNo: '28', badge: 'W-28', locality: 'Pimple Saudagar', wardLabel: 'Ward 28 (Pimple Saudagar)', marathiWardLabel: 'प्रभाग २८ (पिंपळे सौदागर)', zone: 'Zone D', marathiZone: 'क्षेत्रीय ड' };
@@ -321,5 +331,5 @@ export function getWardForArea(areaName: string, lat?: number, lon?: number): Wa
     }
   }
 
-  return { wardNo: '16', badge: 'W-16', locality: 'Kiwale / Ravet', wardLabel: 'Ward 16 (Kiwale / Ravet)', marathiWardLabel: 'प्रभाग १६ (किवळे / रावेत)', zone: 'Zone A', marathiZone: 'क्षेत्रीय अ' };
+  return { wardNo: '16', badge: 'W-16', locality: 'Kiwale / Ravet / Mukai Chowk', wardLabel: 'Ward 16 (Kiwale / Ravet)', marathiWardLabel: 'प्रभाग १६ (किवळे / रावेत / मुकाई चौक)', zone: 'Zone J', marathiZone: 'ज क्षेत्रीय कार्यालय (रायगड)' };
 }

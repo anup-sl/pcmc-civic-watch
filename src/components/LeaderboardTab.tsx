@@ -331,10 +331,10 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
         <div className="px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-[11px] flex items-center justify-between gap-2 text-cyan-200 animate-in fade-in duration-150">
           <div className="flex items-center gap-1.5 truncate">
             <span className="font-extrabold text-[10px] uppercase bg-cyan-950 text-cyan-400 border border-cyan-800 px-1.5 py-0.2 rounded">
-              {activeZoneOffice.zone}
+              {language === 'mr' ? activeZoneOffice.marathiZone : activeZoneOffice.zone}
             </span>
             <span className="truncate text-slate-300 font-medium">
-              {activeZoneOffice.officer}
+              {language === 'mr' ? `सहाय्यक आयुक्त, ${activeZoneOffice.marathiZone}` : activeZoneOffice.officer}
             </span>
           </div>
           <a
@@ -351,8 +351,8 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
       {selectedWardFilter !== 'ALL' && activeWardInfo && (
         <CorporatorSection
           wardNo={activeWardInfo.wardNo}
-          wardLocality={activeWardInfo.locality}
-          zone={activeWardInfo.zone}
+          wardLocality={language === 'mr' ? (activeWardInfo.marathiWardLabel || activeWardInfo.locality) : activeWardInfo.locality}
+          zone={language === 'mr' ? (activeWardInfo.marathiZone || activeWardInfo.zone) : activeWardInfo.zone}
           language={language}
           collapsible={true}
           defaultExpanded={true}
@@ -363,12 +363,12 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
       {selectedWardFilter === 'ALL' && gpsWardInfo && (
         <CorporatorSection
           wardNo={gpsWardInfo.wardNo}
-          wardLocality={gpsWardInfo.locality}
-          zone={gpsWardInfo.zone}
+          wardLocality={language === 'mr' ? (gpsWardInfo.marathiWardLabel || gpsWardInfo.locality) : gpsWardInfo.locality}
+          zone={language === 'mr' ? (gpsWardInfo.marathiZone || gpsWardInfo.zone) : gpsWardInfo.zone}
           language={language}
           collapsible={true}
           defaultExpanded={false}
-          title={language === 'mr' ? `📍 तुमच्या परिसरातील नगरसेवक (${gpsWardInfo.locality})` : `📍 Corporators For Your Location (${gpsWardInfo.locality})`}
+          title={language === 'mr' ? `📍 तुमच्या परिसरातील नगरसेवक (${gpsWardInfo.marathiWardLabel || gpsWardInfo.locality})` : `📍 Corporators For Your Location (${gpsWardInfo.locality})`}
         />
       )}
 
@@ -587,8 +587,8 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                     >
                       <CorporatorSection
                         wardNo={area.wardInfo.wardNo}
-                        wardLocality={area.wardInfo.locality}
-                        zone={area.wardInfo.zone}
+                        wardLocality={language === 'mr' ? (area.wardInfo.marathiWardLabel || area.wardInfo.locality) : area.wardInfo.locality}
+                        zone={language === 'mr' ? (area.wardInfo.marathiZone || area.wardInfo.zone) : area.wardInfo.zone}
                         language={language}
                         collapsible={false}
                         defaultExpanded={true}

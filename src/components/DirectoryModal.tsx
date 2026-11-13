@@ -194,10 +194,10 @@ export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: Direct
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-cyan-400 font-extrabold text-[12px]">
-                        {z.zoneName} ({language === 'mr' ? z.marathiName : z.marathiName})
+                        {language === 'mr' ? `${z.marathiName} (${z.fortMarathi})` : `${z.zoneName} (${z.fortName.split(' ')[0]})`}
                       </span>
                       <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-semibold text-[10px]">
-                        🚩 {z.fortName}
+                        🚩 {language === 'mr' ? z.fortMarathi : z.fortName.split(' ')[0]}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono">
                         {z.wardNumbers.map(n => `W-${n}`).join(', ')}

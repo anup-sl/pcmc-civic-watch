@@ -18,6 +18,9 @@ import {
   HelpCircle,
   Flag,
   Users,
+  Building2,
+  Phone,
+  ExternalLink,
   X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -32,6 +35,8 @@ import { CorporatorSection } from './CorporatorSection';
 import { analyzeImageContent } from '../utils/contentModeration';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
+import { getSubTagsForCategory, getQuickPhrasesForCategory } from '../utils/issueTranslations';
+import { getOfficialWardByNumber, getOfficialZoneByKey } from '../utils/pcmcOfficialWardZoneData';
 
 interface ReportTabProps {
   language: Language;
@@ -74,42 +79,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const [imageScanError, setImageScanError] = useState<{ reason: string; marathiReason: string } | null>(null);
   const [isManualArea, setIsManualArea] = useState<boolean>(false);
   const [showCorporatorsModal, setShowCorporatorsModal] = useState<boolean>(false);
-
-  // Quick Phrases
-  const quickPhrasesByCategory: Record<Category, string[]> = {
-    Garbage: [
-      'Uncollected garbage pile & foul smell',
-      'Illegal construction debris dumped on road',
-      'Waste burning causing toxic morning smoke'
-    ],
-    Pothole: [
-      'Deep pothole crater causing two-wheeler hazard',
-      'Sunken drainage chamber on carriageway',
-      'Asphalt washed out across left lane'
-    ],
-    Drainage: [
-      'Choked stormwater drain overflowing on road',
-      'Missing manhole cover open hazard',
-      'Stagnant sewage pooling along footpath'
-    ],
-    Streetlight: [
-      'Complete dark stretch, streetlights not working',
-      'Flickering lamp pole posing safety risk',
-      'Damaged light pole with exposed wiring'
-    ],
-    Encroachment: [
-      'Footpath completely blocked by illegal stalls, pedestrians forced onto road',
-      'Unauthorized tin shed erected on public walkway',
-      'Commercial banners and advertising boards blocking road visibility',
-      'Construction debris and vehicles blocking pedestrian access'
-    ],
-    Other: [
-      'PCMC Sarathi portal timing out / grievance submission failing',
-      'Online property tax / water bill receipt not generating after transaction',
-      'Public park equipment broken and garden unmaintained',
-      'Noise pollution / loud music disturbance in residential area'
-    ]
-  };
+  const [showZoneModal, setShowZoneModal] = useState<boolean>(false);
 
   // Fetch all hotspots to calculate ward-specific dashboard metrics
   // Live reverse geocoding on coordinates
@@ -343,6 +313,10 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   );
 
   const activeWard = getWardForArea(areaName, latitude, longitude);
+  const activeOfficialWard = getOfficialWardByNumber(parseInt(activeWard.wardNo, 10));
+  const activeOfficialZone = activeOfficialWard
+    ? getOfficialZoneByKey(activeOfficialWard.zoneKey)
+    : getOfficialZoneByKey(activeWard.zone.replace(/^ZONE\s*/i, ''));
 
   return (
     <div className="flex flex-col min-h-full pb-28 pt-2 px-4 max-w-lg mx-auto w-full space-y-3.5">
@@ -357,19 +331,20 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       />
 
       {/* ======================================================== */}
-      {/* 1. LOCALITY & LIVE GPS BAR                               */}
+      {/* 1. LOCALITY & LIVE GPS BAR (2-Line Responsive Layout)     */}
       {/* ======================================================== */}
-      <div className="flex items-center justify-between text-xs px-1">
+      <div className="space-y-1.5 px-1">
+        {/* LINE 1: Location Only */}
         <div className="flex items-center gap-1.5 min-w-0">
           <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
           {isEditingArea ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-1 min-w-0">
               <input
                 type="text"
                 value={areaName}
                 onChange={(e) => setAreaName(e.target.value)}
-                placeholder="Type street / landmark..."
-                className="bg-slate-900 border border-cyan-500 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
+                placeholder={language === 'mr' ? 'रस्ता किंवा खूण टाईप करा...' : 'Type street / landmark...'}
+                className="flex-1 bg-slate-900 border border-cyan-500 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
                 autoFocus
               />
               <button
@@ -378,21 +353,21 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                   setIsEditingArea(false);
                   setIsManualArea(true);
                 }}
-                className="px-2 py-0.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px]"
+                className="px-2.5 py-0.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px] shrink-0"
               >
-                Save
+                {language === 'mr' ? 'जतन करा' : 'Save'}
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1 min-w-0">
-              <span className="font-semibold text-slate-200 truncate">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <span className="font-semibold text-slate-100 text-xs sm:text-sm break-words leading-snug">
                 {isGeocoding ? (language === 'mr' ? 'अचूक पत्ता शोधत आहे...' : 'Detecting street...') : areaName}
               </span>
               <button
                 type="button"
                 onClick={() => setIsEditingArea(true)}
                 className="p-1 rounded text-slate-400 hover:text-cyan-400 shrink-0"
-                title="Edit street / landmark"
+                title={language === 'mr' ? 'पत्ता संपादित करा' : 'Edit street / landmark'}
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -400,7 +375,8 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* LINE 2: GPS, Switch Ward, Corporators & Zone Office Info */}
+        <div className="flex items-center gap-1.5 flex-wrap text-xs pt-0.5">
           <button
             type="button"
             onClick={() => {
@@ -408,7 +384,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               grabLiveGPS(true);
             }}
             disabled={isLocating}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0"
           >
             <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
             <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
@@ -417,7 +393,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           <button
             type="button"
             onClick={() => setShowLocationPicker(!showLocationPicker)}
-            className="text-[10px] text-slate-400 hover:text-cyan-400 underline font-semibold"
+            className="text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-1 shrink-0"
           >
             {showLocationPicker ? t.closeWards : t.switchWard}
           </button>
@@ -425,12 +401,28 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           <button
             type="button"
             onClick={() => setShowCorporatorsModal(true)}
-            className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 shadow-xs active:scale-95 transition-all"
-            title="View Elected Corporators for this location"
+            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 shadow-xs active:scale-95 transition-all shrink-0"
+            title={language === 'mr' ? 'स्थानिक नगरसेवक पहा' : 'View Elected Corporators for this location'}
           >
-            <Users className="w-3 h-3 text-cyan-400" />
+            <Users className="w-3.5 h-3.5 text-cyan-400" />
             <span>{activeWard.badge} {language === 'mr' ? 'नगरसेवक' : 'Corporators'}</span>
           </button>
+
+          {activeOfficialZone && (
+            <button
+              type="button"
+              onClick={() => setShowZoneModal(true)}
+              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 shadow-xs active:scale-95 transition-all shrink-0"
+              title={language === 'mr' ? 'क्षेत्रीय कार्यालय माहिती पहा' : 'View Zonal Field Office details'}
+            >
+              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>
+                {language === 'mr'
+                  ? `${activeOfficialZone.marathiName.replace(' कार्यालय', '')} (${activeOfficialZone.fortMarathi})`
+                  : `${activeOfficialZone.zoneName} • ${activeOfficialZone.fortName.split(' ')[0]}`}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -711,20 +703,21 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               <span className="text-[10px] text-slate-500 font-medium">Select exact issue</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES[selectedCategory].subTags.map((tag) => {
-                const isSelected = selectedSubTag === tag;
+              {getSubTagsForCategory(selectedCategory, language).map((item) => {
+                const isSelected = selectedSubTag === item.en || selectedSubTag === item.mr;
+                const displayText = language === 'mr' ? item.mr : item.en;
                 return (
                   <button
-                    key={tag}
+                    key={item.en}
                     type="button"
-                    onClick={() => setSelectedSubTag(tag)}
+                    onClick={() => setSelectedSubTag(displayText)}
                     className={`py-1.5 px-2.5 rounded-xl text-left text-xs font-medium border transition-all ${
                       isSelected
                         ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-bold shadow-sm shadow-cyan-500/20'
                         : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
                     }`}
                   >
-                    {tag}
+                    {displayText}
                   </button>
                 );
               })}
@@ -778,7 +771,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-medium">{t.quickPhrases}</span>
               <div className="flex flex-wrap gap-1.5">
-                {quickPhrasesByCategory[selectedCategory].map((phrase) => (
+                {getQuickPhrasesForCategory(selectedCategory, language).map((phrase) => (
                   <button
                     key={phrase}
                     type="button"
@@ -906,7 +899,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                     {language === 'mr' ? 'स्थानिक लोकप्रतिनिधी (नगरसेवक)' : 'Elected Ward Corporators'}
                   </h3>
                   <p className="text-[11px] text-cyan-400 font-medium">
-                    {activeWard.wardLabel} • {activeWard.zone}
+                    {language === 'mr' ? (activeOfficialWard?.marathiLocality || activeWard.marathiWardLabel) : (activeOfficialWard?.locality || activeWard.wardLabel)} • {language === 'mr' ? (activeOfficialZone?.marathiName || activeWard.marathiZone) : (activeOfficialZone?.zoneName || activeWard.zone)}
                   </p>
                 </div>
               </div>
@@ -921,13 +914,165 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
 
             <CorporatorSection
               wardNo={activeWard.wardNo}
-              wardLocality={activeWard.locality}
-              zone={activeWard.zone}
+              wardLocality={language === 'mr' ? (activeOfficialWard?.marathiLocality || activeWard.marathiWardLabel) : (activeOfficialWard?.locality || activeWard.locality)}
+              zone={language === 'mr' ? (activeOfficialZone?.marathiName || activeWard.marathiZone) : (activeOfficialZone?.zoneName || activeWard.zone)}
               language={language}
               collapsible={false}
               showWardSwitcher={true}
               title={language === 'mr' ? `प्रभाग ${activeWard.wardNo} चे अधिकृत नगरसेवक` : `Ward ${activeWard.wardNo} Corporators`}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Zonal Field Office Details Modal */}
+      {showZoneModal && activeOfficialZone && (
+        <div 
+          className="fixed inset-0 z-[1200] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150"
+          onClick={() => setShowZoneModal(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[85vh] overflow-y-auto no-scrollbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {language === 'mr'
+                      ? `${activeOfficialZone.marathiName} (${activeOfficialZone.fortMarathi})`
+                      : `PCMC ${activeOfficialZone.zoneName} (${activeOfficialZone.fortName.split(' ')[0]}) Field Office`}
+                  </h3>
+                  <p className="text-[11px] text-emerald-400 font-semibold">
+                    {language === 'mr'
+                      ? `समाविष्ट प्रभाग: ${activeOfficialZone.wardNumbers.map(w => 'प्रभाग ' + w).join(', ')}`
+                      : `Administers Wards: ${activeOfficialZone.wardNumbers.map(w => 'W-' + String(w).padStart(2, '0')).join(', ')}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowZoneModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Officer & Jurisdiction Info */}
+            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2">
+              <div className="text-[11px]">
+                <span className="font-bold text-slate-300 block mb-0.5">
+                  {language === 'mr' ? 'क्षेत्राधिकार (समाविष्ट भाग):' : 'Key Localities Covered:'}
+                </span>
+                <span className="text-slate-200 leading-relaxed block">
+                  {language === 'mr' ? activeOfficialZone.coverageMarathi : activeOfficialZone.coverageAreas}
+                </span>
+              </div>
+
+              <div className="text-[11px] pt-2 border-t border-slate-900">
+                <span className="font-bold text-slate-300 block mb-0.5">
+                  {language === 'mr' ? 'प्रशासकीय प्रमुख:' : 'Administrative Head:'}
+                </span>
+                <span className="text-emerald-400 font-semibold block">
+                  {language === 'mr'
+                    ? `सहाय्यक आयुक्त, ${activeOfficialZone.marathiName}`
+                    : `Assistant Municipal Commissioner, ${activeOfficialZone.zoneName}`}
+                </span>
+              </div>
+
+              <div className="text-[11px] pt-2 border-t border-slate-900">
+                <span className="font-bold text-slate-300 block mb-0.5">
+                  {language === 'mr' ? 'कार्यालय पत्ता:' : 'Office Address:'}
+                </span>
+                <span className="text-slate-300 block">
+                  {activeOfficialZone.address}
+                </span>
+              </div>
+            </div>
+
+            {/* Direct Contact Buttons */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                {language === 'mr' ? 'थेट संपर्क व हेल्पलाईन' : 'Direct Contacts & Helplines'}
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Landline */}
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                  <div className="min-w-0 pr-1">
+                    <span className="text-[10px] text-slate-400 block font-medium truncate">
+                      {language === 'mr' ? 'कार्यालय संपर्क' : 'Zone Landline'}
+                    </span>
+                    <span className="text-xs font-bold text-white font-mono truncate block">
+                      {activeOfficialZone.phoneFormatted}
+                    </span>
+                  </div>
+                  <a
+                    href={`tel:${activeOfficialZone.phone}`}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95 shrink-0"
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span>{language === 'mr' ? 'कॉल' : 'Call'}</span>
+                  </a>
+                </div>
+
+                {/* PCMC Sarathi 24x7 */}
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-medium">
+                      {language === 'mr' ? 'सारथी २४x७' : 'PCMC Sarathi 24×7'}
+                    </span>
+                    <span className="text-xs font-bold text-white font-mono">
+                      8888006666
+                    </span>
+                  </div>
+                  <a
+                    href="tel:8888006666"
+                    className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/40 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95 shrink-0"
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span>{language === 'mr' ? 'कॉल' : 'Call'}</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                <div className="min-w-0 pr-1">
+                  <span className="text-[10px] text-slate-400 block font-medium">
+                    {language === 'mr' ? 'अधिकृत ईमेल' : 'Official Zone Email'}
+                  </span>
+                  <span className="text-xs font-bold text-white font-mono truncate block">
+                    {activeOfficialZone.email}
+                  </span>
+                </div>
+                <a
+                  href={`mailto:${activeOfficialZone.email}`}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95 shrink-0"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>{language === 'mr' ? 'ईमेल' : 'Email'}</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Official Source Link */}
+            <div className="flex items-center justify-between text-[10px] text-slate-500 px-0.5 pt-1 border-t border-slate-800">
+              <span>{language === 'mr' ? 'अधिकृत स्रोत: pcmcindia.gov.in/ward_info' : 'Official: pcmcindia.gov.in/ward_info'}</span>
+              <a
+                href="https://www.pcmcindia.gov.in/ward_info"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyan-400 hover:underline flex items-center gap-0.5"
+              >
+                <span>{language === 'mr' ? 'पोर्टल पहा' : 'View Portal'}</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
           </div>
         </div>
       )}

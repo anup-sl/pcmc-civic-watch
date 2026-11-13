@@ -138,7 +138,7 @@ export const CorporatorSection = ({
                       )}
                     </div>
                     <div className="font-bold text-xs text-slate-100 leading-snug pt-0.5">
-                      {corp.name}
+                      {language === 'mr' ? corp.name : (corp.nameEn || corp.name)}
                     </div>
                   </div>
 
