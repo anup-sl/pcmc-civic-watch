@@ -12,7 +12,8 @@ import {
   Phone,
   ShieldAlert,
   Flame,
-  MessageCircle
+  MessageCircle,
+  MessageSquare
 } from 'lucide-react';
 import type { Hotspot, Report } from '../types';
 import { PCMC_SARATHI } from '../utils/pcmcDirectory';
@@ -31,13 +32,14 @@ interface EscalateModalProps {
 
 export const EscalateModal = ({ hotspot, reports = [], language, onClose }: EscalateModalProps) => {
   const [copied, setCopied] = useState<boolean>(false);
+  const [smsCopied, setSmsCopied] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
   const [forceCommissionerTier, setForceCommissionerTier] = useState<boolean>(false);
   const t = TRANSLATIONS[language];
 
   const sla = useMemo(() => {
-    return getSLAStatus(hotspot.created_at, hotspot.sla_hours, hotspot.status, hotspot.resolved_at);
-  }, [hotspot]);
+    return getSLAStatus(hotspot.created_at, hotspot.sla_hours, hotspot.status, hotspot.resolved_at, language);
+  }, [hotspot, language]);
 
   const routing = useMemo(() => {
     return buildEscalationRouting({
@@ -116,10 +118,23 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
     `Please register this grievance and dispatch field repair team.`
   )}`;
 
+  const sarathiNumber = PCMC_ESCALATION_CONFIG.central_grievance.sarathi_whatsapp;
+  const smsBody = language === 'mr'
+    ? `PCMC नागरी तक्रार:\nप्रकार: ${t.categories[hotspot.category] || hotspot.category} (${hotspot.sub_tag})\nठिकाण: ${hotspot.area_name}\nGPS: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}\nनकाशा: ${googleMapsUrl}\nतक्रार आयडी: #${hotspot.id.substring(0, 8)}\nकृपया तपासणी करून दुरुस्ती करावी.`
+    : `PCMC Civic Grievance:\nIssue: ${hotspot.category} (${hotspot.sub_tag})\nLocation: ${hotspot.area_name}\nGPS: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}\nMap: ${googleMapsUrl}\nID: #${hotspot.id.substring(0, 8)}\nPlease inspect & resolve.`;
+
+  const smsUri = `sms:${sarathiNumber}?&body=${encodeURIComponent(smsBody)}`;
+
   const handleCopy = () => {
     navigator.clipboard.writeText(`To: ${toRecipients}\nCc: ${ccRecipients}\nSubject: ${subject}\n\n${formalLetter}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleCopySms = () => {
+    navigator.clipboard.writeText(smsBody);
+    setSmsCopied(true);
+    setTimeout(() => setSmsCopied(false), 2500);
   };
 
   const handleDownloadWatermark = async () => {
@@ -255,10 +270,22 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
         <div className="bg-cyan-950/40 border border-cyan-800/60 rounded-xl p-2.5 text-xs text-cyan-200 flex items-start gap-2">
           <Paperclip className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
           <div className="text-[11px] leading-relaxed">
-            <strong className="text-cyan-300 block">How to attach photo proof:</strong>
-            1. Tap <strong>&ldquo;Download Watermarked Proof&rdquo;</strong> below to save the official timestamped JPG to your device.
-            <br />
-            2. Tap <strong>&ldquo;Open in Gmail&rdquo;</strong> (the letter is already typed), tap 📎 <strong>Attach</strong>, and select the downloaded JPG!
+            <strong className="text-cyan-300 block">
+              {language === 'mr' ? 'फोटो पुरावा कसा जोडायचा:' : 'How to attach photo proof:'}
+            </strong>
+            {language === 'mr' ? (
+              <>
+                १. खालील <strong>&ldquo;वॉटरमार्क पुरावा डाउनलोड करा&rdquo;</strong> वर टॅप करून वेळेचा शिक्का असलेला JPG सेव्ह करा.
+                <br />
+                २. <strong>&ldquo;Gmail मध्ये उघडा&rdquo;</strong> वर टॅप करा (तक्रार पत्र आधीच टाईप केलेले आहे), 📎 <strong>Attach</strong> निवडून सेव्ह केलेला फोटो जोडा!
+              </>
+            ) : (
+              <>
+                1. Tap <strong>&ldquo;Download Watermarked Proof&rdquo;</strong> below to save the official timestamped JPG to your device.
+                <br />
+                2. Tap <strong>&ldquo;Open in Gmail&rdquo;</strong> (the letter is already typed), tap 📎 <strong>Attach</strong>, and select the downloaded JPG!
+              </>
+            )}
           </div>
         </div>
 
@@ -272,7 +299,7 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
             className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 active:scale-95 transition-all shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{downloading ? 'Generating Evidence Stamp...' : t.downloadWatermarked}</span>
+            <span>{downloading ? (language === 'mr' ? 'पुरावा शिक्का तयार करत आहे...' : 'Generating Evidence Stamp...') : t.downloadWatermarked}</span>
           </button>
 
           {/* 2. Open Gmail Web */}
@@ -303,10 +330,39 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
             className="w-full py-2.5 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-all shadow-sm"
           >
             <MessageCircle className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Send to Sarathi WhatsApp (9922501450)</span>
+            <span>{language === 'mr' ? `सारथी WhatsApp वर पाठवा (${sarathiNumber})` : `Send to Sarathi WhatsApp (${sarathiNumber})`}</span>
           </a>
 
-          {/* 5. Copy Letter & Recipients */}
+          {/* 5. SMS Sarathi Quick Grievance (Same number as Sarathi WhatsApp) */}
+          <div className="flex items-center gap-1.5">
+            <a
+              href={smsUri}
+              className="flex-1 py-2.5 px-4 rounded-xl bg-blue-700 hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-2 border border-blue-500 active:scale-95 transition-all shadow-sm"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-blue-200" />
+              <span>{language === 'mr' ? `सारथी SMS पाठवा (${sarathiNumber})` : `Send SMS to Sarathi (${sarathiNumber})`}</span>
+            </a>
+            <button
+              type="button"
+              onClick={handleCopySms}
+              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 active:scale-95 shrink-0 flex items-center gap-1 text-xs font-semibold"
+              title={language === 'mr' ? 'SMS मजकूर कॉपी करा' : 'Copy SMS text'}
+            >
+              {smsCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-green-400 text-[11px]">{language === 'mr' ? 'कॉपी झाले!' : 'Copied!'}</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[11px]">{language === 'mr' ? 'कॉपी SMS' : 'Copy SMS'}</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* 6. Copy Letter & Recipients */}
           <button
             type="button"
             onClick={handleCopy}
@@ -315,7 +371,7 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-green-400">Copied Formal Letter, To & Cc!</span>
+                <span className="text-green-400">{language === 'mr' ? 'अधिकृत पत्र व ईमेल पत्ते कॉपी झाले!' : 'Copied Formal Letter, To & Cc!'}</span>
               </>
             ) : (
               <>
@@ -329,7 +385,7 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
         {/* State Level Escalation Banner (Aaple Sarkar) */}
         <div className="bg-amber-950/40 border border-amber-600/40 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
           <div className="text-amber-200 text-[11px]">
-            <strong>Unresolved &gt; 7 days?</strong> File directly on Maharashtra State Aaple Sarkar portal.
+            <strong>{language === 'mr' ? '७ दिवसांपेक्षा जास्त प्रलंबित?' : 'Unresolved > 7 days?'}</strong> {language === 'mr' ? 'थेट महाराष्ट्र शासनाच्या आपले सरकार पोर्टलवर तक्रार नोंदवा.' : 'File directly on Maharashtra State Aaple Sarkar portal.'}
           </div>
           <a
             href={PCMC_SARATHI.aapleSarkar}

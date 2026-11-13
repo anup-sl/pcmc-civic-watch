@@ -138,10 +138,10 @@ export function App() {
               type="button"
               onClick={() => setShowDirectoryModal(true)}
               className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
-              title="PCMC Helplines & Wards"
+              title={language === 'mr' ? 'PCMC हेल्पलाईन आणि प्रभाग' : 'PCMC Helplines & Wards'}
             >
               <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline text-[11px]">Help</span>
+              <span className="hidden sm:inline text-[11px]">{language === 'mr' ? 'मदत' : 'Help'}</span>
             </button>
 
             {/* Bilingual EN | मराठी Toggle Switch */}

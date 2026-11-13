@@ -21,6 +21,7 @@ import {
   Building2,
   Phone,
   ExternalLink,
+  Send,
   X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -32,6 +33,7 @@ import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation } from '../utils/geo'
 import { getWardForArea } from '../utils/pcmcDirectory';
 import { FlagModal } from './FlagModal';
 import { CorporatorSection } from './CorporatorSection';
+import { EscalateModal } from './EscalateModal';
 import { analyzeImageContent } from '../utils/contentModeration';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
@@ -80,6 +82,13 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const [isManualArea, setIsManualArea] = useState<boolean>(false);
   const [showCorporatorsModal, setShowCorporatorsModal] = useState<boolean>(false);
   const [showZoneModal, setShowZoneModal] = useState<boolean>(false);
+  const [escalateHotspot, setEscalateHotspot] = useState<Hotspot | null>(null);
+  const [citizenName, setCitizenName] = useState<string>(() => {
+    try { return localStorage.getItem('pcmc_citizen_name') || ''; } catch { return ''; }
+  });
+  const [citizenContact, setCitizenContact] = useState<string>(() => {
+    try { return localStorage.getItem('pcmc_citizen_contact') || ''; } catch { return ''; }
+  });
 
   // Fetch all hotspots to calculate ward-specific dashboard metrics
   // Live reverse geocoding on coordinates
@@ -258,6 +267,12 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         finalBlob = await res.blob();
       }
 
+      const citizenParts = [
+        citizenName.trim() ? `Reported by: ${citizenName.trim()}` : '',
+        citizenContact.trim() ? `Contact: ${citizenContact.trim()}` : ''
+      ].filter(Boolean).join(' | ');
+      const combinedNotes = [notes.trim(), citizenParts].filter(Boolean).join(' • ');
+
       const result = await submitCivicReport({
         category: selectedCategory,
         subTag: selectedSubTag,
@@ -266,7 +281,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         areaName: areaName.trim() || 'Pimpri Chinchwad',
         slaHours: CATEGORIES[selectedCategory].slaHours,
         photoBlob: finalBlob!,
-        notes: notes.trim() || undefined
+        notes: combinedNotes || undefined
       });
 
       setSubmissionResult(result);
@@ -435,7 +450,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               type="text"
               value={wardSearchQuery}
               onChange={(e) => setWardSearchQuery(e.target.value)}
-              placeholder="Search Wakad, Nigdi, Pimple Saudagar, Ravet..."
+              placeholder={language === 'mr' ? 'वाकड, निगडी, पिंपळे सौदागर, रावेत शोधा...' : 'Search Wakad, Nigdi, Pimple Saudagar, Ravet...'}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
             />
           </div>
@@ -448,17 +463,19 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                 onClick={() => {
                   setLatitude(preset.latitude);
                   setLongitude(preset.longitude);
-                  setAreaName(`${preset.name}, Pimpri-Chinchwad`);
+                  setAreaName(language === 'mr' ? `${preset.nameMr || preset.name}, पिंपरी-चिंचवड` : `${preset.name}, Pimpri-Chinchwad`);
                   setIsOutsidePCMC(false);
                   setShowLocationPicker(false);
                   setIsManualArea(true);
                 }}
                 className="text-left p-2 rounded-lg text-[11px] border bg-slate-950 border-slate-800 hover:border-cyan-500/60 text-slate-300 hover:text-white transition-colors"
               >
-                <div className="font-bold truncate text-white">{preset.name}</div>
+                <div className="font-bold truncate text-white">
+                  {language === 'mr' ? (preset.nameMr || preset.name) : preset.name}
+                </div>
                 <div className="text-[9px] text-cyan-400 flex items-center justify-between mt-0.5">
-                  <span>{preset.ward}</span>
-                  <span>{preset.zone}</span>
+                  <span>{language === 'mr' ? preset.ward.replace('Ward', 'प्रभाग') : preset.ward}</span>
+                  <span>{language === 'mr' ? preset.zone.replace('Zone', 'क्षेत्रीय') : preset.zone}</span>
                 </div>
               </button>
             ))}
@@ -621,22 +638,34 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="space-y-2 pt-2">
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => onNavigateToMap(submissionResult.hotspot.id)}
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{language === 'mr' ? 'नकाशावर पहा' : 'View on Map'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEscalateHotspot(submissionResult.hotspot)}
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-orange-500/25 active:scale-95 transition-all"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{language === 'mr' ? 'PCMC ला ईमेल पाठवा' : 'Send Email to PCMC'}</span>
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={resetForm}
-              className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              {language === 'mr' ? 'दुसरी तक्रार करा' : 'Snap Another'}
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigateToMap(submissionResult.hotspot.id)}
-              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/25 transition-all"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              {language === 'mr' ? 'नकाशावर पहा' : 'View on Map'}
+              <span>{language === 'mr' ? 'नवीन तक्रार नोंदवा' : 'Snap Another Issue'}</span>
             </button>
           </div>
         </div>
@@ -783,6 +812,40 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* OPTIONAL CITIZEN CONTACT INFO */}
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                {language === 'mr' ? 'नागरिक माहिती (पर्यायी)' : 'Citizen Contact Info (Optional)'}
+              </label>
+              <span className="text-[10px] text-slate-500 font-medium">
+                {language === 'mr' ? 'अधिकृत पाठपुराव्यासाठी' : 'For official follow-up'}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={citizenName}
+                onChange={(e) => {
+                  setCitizenName(e.target.value);
+                  try { localStorage.setItem('pcmc_citizen_name', e.target.value); } catch (_) {}
+                }}
+                placeholder={language === 'mr' ? 'तुमचे नाव (पर्यायी)' : 'Your Name (Optional)'}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+              <input
+                type="text"
+                value={citizenContact}
+                onChange={(e) => {
+                  setCitizenContact(e.target.value);
+                  try { localStorage.setItem('pcmc_citizen_contact', e.target.value); } catch (_) {}
+                }}
+                placeholder={language === 'mr' ? 'ईमेल किंवा मोबाईल नंबर (पर्यायी)' : 'Email or Phone (Optional)'}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
             </div>
           </div>
 
@@ -1075,6 +1138,15 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             </div>
           </div>
         </div>
+      )}
+      {/* Escalation Modal directly accessible from submission success */}
+      {escalateHotspot && (
+        <EscalateModal
+          hotspot={escalateHotspot}
+          reports={[]}
+          language={language}
+          onClose={() => setEscalateHotspot(null)}
+        />
       )}
     </div>
   );

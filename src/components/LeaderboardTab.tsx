@@ -293,14 +293,18 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span className="truncate">
               {selectedWardFilter === 'ALL' ? (
-                <span className="font-bold text-cyan-300">All Wards (32)</span>
+                <span className="font-bold text-cyan-300">{language === 'mr' ? 'सर्व प्रभाग (३२)' : 'All Wards (32)'}</span>
               ) : (
                 <span className="flex items-center gap-1.5 truncate">
                   <span className="font-mono text-[10px] font-black px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
                     {activeWardInfo?.badge}
                   </span>
-                  <span className="truncate text-white font-bold">{activeWardInfo?.locality}</span>
-                  <span className="text-[10px] text-slate-400 font-normal shrink-0">({activeWardInfo?.zone})</span>
+                  <span className="truncate text-white font-bold">
+                    {language === 'mr' ? (activeWardInfo?.marathiWardLabel || activeWardInfo?.locality) : activeWardInfo?.locality}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal shrink-0">
+                    ({language === 'mr' ? activeWardInfo?.marathiZone : activeWardInfo?.zone})
+                  </span>
                 </span>
               )}
             </span>
@@ -316,10 +320,10 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
               onChange={(e) => setSortBy(e.target.value as 'overdue' | 'open' | 'resolutionRate' | 'total')}
               className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-[11px] font-semibold rounded-xl px-2.5 py-2 pr-6 appearance-none focus:outline-none focus:border-cyan-500 shadow-sm transition-all"
             >
-              <option value="overdue">Sort: Most Overdue</option>
-              <option value="open">Sort: Most Open</option>
-              <option value="resolutionRate">Sort: Resolution Rate</option>
-              <option value="total">Sort: Total Reports</option>
+              <option value="overdue">{language === 'mr' ? 'क्रमवारी: सर्वाधिक मुदत संपलेली' : 'Sort: Most Overdue'}</option>
+              <option value="open">{language === 'mr' ? 'क्रमवारी: सर्वाधिक प्रलंबित' : 'Sort: Most Open'}</option>
+              <option value="resolutionRate">{language === 'mr' ? 'क्रमवारी: निवारण दर' : 'Sort: Resolution Rate'}</option>
+              <option value="total">{language === 'mr' ? 'क्रमवारी: एकूण तक्रारी' : 'Sort: Total Reports'}</option>
             </select>
             <ArrowUpDown className="w-3 h-3 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
           </div>
@@ -386,7 +390,9 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             {summaryStrip.totalOpen}
           </div>
           <p className="text-[9px] text-slate-400 mt-0.5">
-            {selectedWardFilter === 'ALL' ? 'City-wide PCMC' : 'In selected ward'}
+            {selectedWardFilter === 'ALL'
+              ? (language === 'mr' ? 'शहर पातळी (PCMC)' : 'City-wide PCMC')
+              : (language === 'mr' ? 'निवडलेल्या प्रभागात' : 'In selected ward')}
           </p>
         </div>
 
@@ -399,7 +405,9 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
           <div className="text-xl font-black text-rose-300 mt-0.5 leading-tight">
             {summaryStrip.overdueCount}
           </div>
-          <p className="text-[9px] text-slate-400 mt-0.5">Breached SLA</p>
+          <p className="text-[9px] text-slate-400 mt-0.5">
+            {language === 'mr' ? 'मुदत उलटलेली' : 'Breached SLA'}
+          </p>
         </div>
 
         {/* RESOLVED */}
@@ -411,7 +419,9 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
           <div className="text-xl font-black text-emerald-300 mt-0.5 leading-tight">
             {summaryStrip.resolvedCount}
           </div>
-          <p className="text-[9px] text-slate-400 mt-0.5">Fixed & verified</p>
+          <p className="text-[9px] text-slate-400 mt-0.5">
+            {language === 'mr' ? 'दुरुस्त व प्रमाणित' : 'Fixed & verified'}
+          </p>
         </div>
       </div>
 
@@ -495,10 +505,10 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                       {/* Full Locality Name & Zone */}
                       <div className="min-w-0 truncate">
                         <span className="font-bold text-xs sm:text-sm text-white truncate block leading-tight group-hover:text-cyan-300 transition-colors">
-                          {area.areaName}
+                          {language === 'mr' ? (area.wardInfo.marathiWardLabel || area.areaName) : area.areaName}
                         </span>
                         <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
-                          {area.wardInfo.zone} {area.chronicCount > 0 && `• ${area.chronicCount} chronic`}
+                          {language === 'mr' ? area.wardInfo.marathiZone : area.wardInfo.zone} {area.chronicCount > 0 && (language === 'mr' ? `• ${area.chronicCount} वारंवार` : `• ${area.chronicCount} chronic`)}
                         </span>
                       </div>
                     </div>
@@ -506,10 +516,12 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                     {/* Right-aligned Count Pill */}
                     <div className="text-right shrink-0">
                       <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold">
-                        <span className="text-amber-400">{area.openCount} Open</span>
+                        <span className="text-amber-400">
+                          {area.openCount} {language === 'mr' ? 'प्रलंबित' : 'Open'}
+                        </span>
                         <span className="text-slate-600">•</span>
                         <span className={hasOverdue ? 'text-rose-400' : 'text-slate-400'}>
-                          {area.overdueCount} Overdue
+                          {area.overdueCount} {language === 'mr' ? 'मुदत संपलेली' : 'Overdue'}
                         </span>
                       </div>
                     </div>
@@ -518,9 +530,9 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                   {/* Row 2: Subtle Horizontal Progress Bar (Open vs Resolved) */}
                   <div className="mt-2.5 pt-2 border-t border-slate-800/60 space-y-1">
                     <div className="flex items-center justify-between text-[10px] text-slate-400">
-                      <span>Resolution Rate</span>
+                      <span>{language === 'mr' ? 'निवारण दर' : 'Resolution Rate'}</span>
                       <span className="font-semibold text-slate-300">
-                        {resolutionPct}% ({area.resolvedCount}/{area.total} fixed)
+                        {resolutionPct}% ({language === 'mr' ? `${area.resolvedCount}/${area.total} निवारण` : `${area.resolvedCount}/${area.total} fixed`})
                       </span>
                     </div>
 
@@ -615,7 +627,9 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 shrink-0">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm sm:text-base font-bold text-white">Select PCMC Ward or Area</h3>
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  {language === 'mr' ? 'PCMC प्रभाग किंवा परिसर निवडा' : 'Select PCMC Ward or Area'}
+                </h3>
               </div>
               <button
                 type="button"
@@ -633,7 +647,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                 type="text"
                 value={wardSearchQuery}
                 onChange={(e) => setWardSearchQuery(e.target.value)}
-                placeholder="Search Wakad, Kiwale, Nigdi, W-17, Bhosari..."
+                placeholder={language === 'mr' ? 'वाकड, किवळे, निगडी, प्रभाग १७, भोसरी शोधा...' : 'Search Wakad, Kiwale, Nigdi, W-17, Bhosari...'}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                 autoFocus
               />
@@ -659,8 +673,12 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                     ALL
                   </div>
                   <div>
-                    <span className="font-bold text-xs text-white block">All Wards (32)</span>
-                    <span className="text-[10px] text-slate-400">City-wide PCMC overview across Zone A through Zone H</span>
+                    <span className="font-bold text-xs text-white block">
+                      {language === 'mr' ? 'सर्व प्रभाग (३२)' : 'All Wards (32)'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {language === 'mr' ? 'अ ते ल सर्व १० क्षेत्रीय कार्यालये व ३२ प्रभागांचा आढावा' : 'City-wide PCMC overview across Zone A through Zone H'}
+                    </span>
                   </div>
                 </div>
                 {selectedWardFilter === 'ALL' && <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />}
@@ -686,9 +704,15 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                     </div>
                     <div>
                       <span className="font-bold text-xs text-emerald-300 block">
-                        My GPS Ward: {gpsWardInfo.badge} • {gpsWardInfo.locality}
+                        {language === 'mr'
+                          ? `माझा GPS प्रभाग: ${gpsWardInfo.badge} • ${gpsWardInfo.marathiWardLabel || gpsWardInfo.locality}`
+                          : `My GPS Ward: ${gpsWardInfo.badge} • ${gpsWardInfo.locality}`}
                       </span>
-                      <span className="text-[10px] text-slate-400">Auto-detected via live location ({gpsWardInfo.zone})</span>
+                      <span className="text-[10px] text-slate-400">
+                        {language === 'mr'
+                          ? `थेट स्थानावरून शोधलेला (${gpsWardInfo.marathiZone || gpsWardInfo.zone})`
+                          : `Auto-detected via live location (${gpsWardInfo.zone})`}
+                      </span>
                     </div>
                   </div>
                   {selectedWardFilter.toLowerCase().includes(gpsWardInfo.locality.toLowerCase()) && (
@@ -705,7 +729,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                   return (
                     <div key={zoneName} className="space-y-1.5">
                       <div className="text-[10px] font-black uppercase tracking-wider text-cyan-400 px-1">
-                        {zoneName}
+                        {language === 'mr' ? zoneName.replace('Zone', 'क्षेत्रीय') : zoneName}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -728,11 +752,13 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                               }`}
                             >
                               <div className="min-w-0 pr-1">
-                                <div className="font-bold truncate text-white">{p.name.split(' Chowk')[0].split(' Road')[0]}</div>
+                                <div className="font-bold truncate text-white">
+                                  {language === 'mr' ? (p.nameMr || p.name).split(' चौक')[0].split(' रोड')[0] : p.name.split(' Chowk')[0].split(' Road')[0]}
+                                </div>
                                 <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                                   <span className="font-mono text-cyan-400 font-bold">{wInfo.badge}</span>
                                   <span>•</span>
-                                  <span>{p.ward}</span>
+                                  <span>{language === 'mr' ? p.ward.replace('Ward', 'प्रभाग') : p.ward}</span>
                                 </div>
                               </div>
                               {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}

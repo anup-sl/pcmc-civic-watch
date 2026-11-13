@@ -526,7 +526,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
 
             {/* SLA Governance & Hours/Days Open vs SLA */}
             {(() => {
-              const sla = getSLAStatus(selectedHotspot.created_at, selectedHotspot.sla_hours, selectedHotspot.status, selectedHotspot.resolved_at);
+              const sla = getSLAStatus(selectedHotspot.created_at, selectedHotspot.sla_hours, selectedHotspot.status, selectedHotspot.resolved_at, language);
               return (
                 <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-2.5 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
@@ -558,7 +558,9 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
               <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
                 <span className="text-[10px] text-slate-400 uppercase font-bold block">{t.recurrenceCount}</span>
                 <span className="font-black text-sm text-purple-300 mt-0.5 block">
-                  {selectedHotspot.recurrence_count > 0 ? `${selectedHotspot.recurrence_count}x Reopened` : 'Initial (0)'}
+                  {selectedHotspot.recurrence_count > 0
+                    ? (language === 'mr' ? `${selectedHotspot.recurrence_count} वेळा पुन्हा उघडले` : `${selectedHotspot.recurrence_count}x Reopened`)
+                    : (language === 'mr' ? 'प्राथमिक (०)' : 'Initial (0)')}
                 </span>
               </div>
             </div>
@@ -608,23 +610,26 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                               report.report_type === 'CORROBORATION' ? 'bg-blue-950 text-blue-300 border-blue-700' :
                               'bg-amber-950 text-amber-300 border-amber-700'
                             }`}>
-                              {report.report_type}
+                              {report.report_type === 'CLEARANCE' ? (language === 'mr' ? 'निवारण' : 'CLEARANCE') :
+                               report.report_type === 'REOPEN' ? (language === 'mr' ? 'पुन्हा उघडले' : 'REOPEN') :
+                               report.report_type === 'CORROBORATION' ? (language === 'mr' ? 'नागरिक पुष्टी' : 'CORROBORATION') :
+                               (language === 'mr' ? 'पहिली नोंद' : 'INITIAL')}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">{dateStr}</span>
                           </div>
 
                           <div className="flex items-center justify-between gap-1 pt-0.5">
                             <p className="text-[11px] text-slate-300 truncate">
-                              {report.notes || (report.report_type === 'CLEARANCE' ? 'Clearance photo verified' : 'Citizen report')}
+                              {report.notes || (report.report_type === 'CLEARANCE' ? (language === 'mr' ? 'काम पूर्ण झाल्याची खात्री' : 'Clearance photo verified') : (language === 'mr' ? 'नागरिक तक्रार' : 'Citizen report'))}
                             </p>
                             <button
                               type="button"
                               onClick={() => setFlagTarget({ reportId: report.id, hotspotId: selectedHotspot.id })}
                               className="text-[10px] text-slate-400 hover:text-rose-400 shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800"
-                              title="Flag inappropriate or private image"
+                              title={language === 'mr' ? 'आक्षेपार्ह किंवा खाजगी फोटोची तक्रार करा' : 'Flag inappropriate or private image'}
                             >
                               <Flag className="w-2.5 h-2.5 text-rose-400" />
-                              <span>Flag</span>
+                              <span>{language === 'mr' ? 'आक्षेप' : 'Flag'}</span>
                             </button>
                           </div>
                         </div>
@@ -638,13 +643,13 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
             {/* Test Mode Toggle & Proximity Status */}
             <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-300 font-medium">GPS Range:</span>
+                <span className="text-[11px] text-slate-300 font-medium">{language === 'mr' ? 'GPS अंतर:' : 'GPS Range:'}</span>
                 {distanceToPin !== null ? (
                   <span className={`font-mono text-[11px] font-bold ${distanceToPin <= 30 ? 'text-green-400' : 'text-amber-400'}`}>
-                    {distanceToPin}m away {distanceToPin <= 30 ? '(Within 30m ✓)' : '(Outside 30m)'}
+                    {distanceToPin}{language === 'mr' ? 'मी अंतर' : 'm away'} {distanceToPin <= 30 ? (language === 'mr' ? '(३०मी मर्यादेत ✓)' : '(Within 30m ✓)') : (language === 'mr' ? '(३०मी मर्यादेबाहेर)' : '(Outside 30m)')}
                   </span>
                 ) : (
-                  <span className="text-slate-500 text-[10px]">Checking device GPS...</span>
+                  <span className="text-slate-500 text-[10px]">{language === 'mr' ? 'GPS स्थान तपासत आहे...' : 'Checking device GPS...'}</span>
                 )}
               </div>
 
@@ -739,8 +744,19 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                 </button>
               </div>
             ) : (
-              /* ACTION BUTTONS: MARK AS CLEARED, SHARE WHATSAPP, AND ESCALATE TO PCMC */
+              /* ACTION BUTTONS: ESCALATE TO PCMC (PRIMARY), FOLLOWED BY CLEARANCE & WHATSAPP */
               <div className="space-y-2 pt-1">
+                {/* 1. ESCALATE TO PCMC OFFICIALS BUTTON (PRIMARY ACTION) */}
+                <button
+                  type="button"
+                  onClick={() => setEscalateTargetHotspot(selectedHotspot)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{t.escalateEmail} (Ward Officer + Nodal Dept)</span>
+                </button>
+
+                {/* 2. CLEARANCE & WHATSAPP ROW (BELOW SEND EMAIL) */}
                 <div className="grid grid-cols-2 gap-2">
                   {selectedHotspot.status !== 'RESOLVED' ? (
                     <button
@@ -752,7 +768,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 text-slate-950'
                           : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       }`}
-                      title={!canClearHotspot ? 'Must be within 30m of pin (or turn on Test Mode above)' : ''}
+                      title={!canClearHotspot ? (language === 'mr' ? 'समस्येच्या ३०मी अंतरावर असणे आवश्यक (किंवा वरील टेस्ट मोड चालू करा)' : 'Must be within 30m of pin (or turn on Test Mode above)') : ''}
                     >
                       <Check className="w-3.5 h-3.5" />
                       {t.markCleared}
@@ -773,17 +789,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                   </button>
                 </div>
 
-                {/* ESCALATE TO PCMC OFFICIALS BUTTON */}
-                <button
-                  type="button"
-                  onClick={() => setEscalateTargetHotspot(selectedHotspot)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{t.escalateEmail} (Ward Officer + Nodal Dept)</span>
-                </button>
-
-                {/* COMMUNITY CONTENT REPORT / FLAG BUTTON */}
+                {/* 3. COMMUNITY CONTENT REPORT / FLAG BUTTON */}
                 <button
                   type="button"
                   onClick={() => setFlagTarget({ hotspotId: selectedHotspot.id })}
