@@ -1143,7 +1143,20 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       {escalateHotspot && (
         <EscalateModal
           hotspot={escalateHotspot}
-          reports={[]}
+          reports={
+            submissionResult?.report
+              ? [submissionResult.report]
+              : (photoPreviewUrl || photoBlob)
+                ? [{
+                    id: 'submitted-evidence',
+                    hotspot_id: escalateHotspot.id,
+                    report_type: 'INITIAL',
+                    photo_url: photoPreviewUrl || (photoBlob ? URL.createObjectURL(photoBlob) : ''),
+                    notes: notes || '',
+                    created_at: new Date().toISOString()
+                  }]
+                : (escalateHotspot.reports || [])
+          }
           language={language}
           onClose={() => setEscalateHotspot(null)}
         />

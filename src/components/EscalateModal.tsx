@@ -50,7 +50,8 @@ export const EscalateModal = ({ hotspot, reports = [], language, onClose }: Esca
     });
   }, [hotspot, sla.isOverdue, forceCommissionerTier]);
 
-  const photoUrls = reports
+  const combinedReports = (reports && reports.length > 0) ? reports : (hotspot.reports || []);
+  const photoUrls = combinedReports
     .map(r => r.photo_url)
     .filter((url): url is string => Boolean(url && url.trim().length > 0));
   const distinctPhotos = Array.from(new Set(photoUrls));
@@ -140,18 +141,19 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
   const handleDownloadWatermark = async () => {
     setDownloading(true);
     try {
-      const targetPhoto = photoUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop';
+      const targetPhoto = photoUrl || (distinctPhotos.length > 0 ? distinctPhotos[0] : '');
       const stamped = await createWatermarkedImage(targetPhoto, {
         id: hotspot.id,
         category: hotspot.category,
+        subTag: hotspot.sub_tag,
         areaName: hotspot.area_name,
         latitude: hotspot.latitude,
         longitude: hotspot.longitude,
         createdAt: hotspot.created_at
       });
-      downloadFile(stamped, `PCMC_Evidence_${hotspot.id.substring(0, 8)}.jpg`);
+      await downloadFile(stamped, `PCMC_Evidence_${hotspot.id.substring(0, 8)}.jpg`);
     } catch (err) {
-      console.warn('Watermark error:', err);
+      console.error('Watermark error:', err);
     } finally {
       setDownloading(false);
     }

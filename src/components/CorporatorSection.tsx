@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, ExternalLink, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, ExternalLink, Users, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { getCorporatorsForWard } from '../utils/pcmcCorporators';
 import type { Language } from '../utils/i18n';
 
@@ -142,17 +142,36 @@ export const CorporatorSection = ({
                     </div>
                   </div>
 
-                  <div className="pt-1 border-t border-slate-900 flex items-center justify-between">
+                  <div className="pt-1.5 border-t border-slate-900 flex items-center justify-between gap-1 flex-wrap sm:flex-nowrap">
                     <span className="font-mono text-[11px] text-slate-300 font-semibold tracking-wide">
                       {corp.phone}
                     </span>
-                    <a
-                      href={`tel:${corp.phone}`}
-                      className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/40 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95"
-                    >
-                      <Phone className="w-3 h-3" />
-                      <span>{language === 'mr' ? 'कॉल करा' : 'Call'}</span>
-                    </a>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* WhatsApp Button */}
+                      <a
+                        href={`https://wa.me/91${corp.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                          language === 'mr'
+                            ? `नमस्कार नगरसेवक महोदय, मी आपल्या प्रभागातील (प्रभाग ${currentWardNo}) नागरिक असून नागरी समस्येबाबत संपर्क साधत आहे:`
+                            : `Respected Corporator, I am a resident of your ward (Ward ${currentWardNo}) contacting you regarding a civic grievance:`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/40 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95"
+                        title={language === 'mr' ? 'व्हॉट्सॲपवर संपर्क साधा' : 'Chat on WhatsApp'}
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        <span>{language === 'mr' ? 'व्हॉट्सॲप' : 'WhatsApp'}</span>
+                      </a>
+                      {/* Call Button */}
+                      <a
+                        href={`tel:${corp.phone}`}
+                        className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/40 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95"
+                        title={language === 'mr' ? 'थेट फोन करा' : 'Call directly'}
+                      >
+                        <Phone className="w-3 h-3" />
+                        <span>{language === 'mr' ? 'कॉल' : 'Call'}</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
