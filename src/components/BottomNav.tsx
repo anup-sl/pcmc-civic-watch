@@ -1,4 +1,4 @@
-import { Camera, Map, Trophy } from 'lucide-react';
+import { FileText, Map, Trophy } from 'lucide-react';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
@@ -45,7 +45,7 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
                 : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500 group-hover:text-cyan-400 shadow-black/50'
             }`}
           >
-            <Camera className="w-7 h-7" />
+            <FileText className="w-6.5 h-6.5" />
           </div>
           <span
             className={`text-[11px] font-bold mt-1 tracking-tight ${

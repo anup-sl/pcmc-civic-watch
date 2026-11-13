@@ -156,22 +156,29 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
 
   useEffect(() => {
     loadHotspots();
-    fetchUserLocation();
+    fetchUserLocation(true);
   }, []);
 
-  const fetchUserLocation = () => {
+  const fetchUserLocation = (centerMap = true) => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserLocation({ lat, lng });
         setIsLocating(false);
+        // Automatically pan and center the map on the user's detected location
+        if (centerMap && !selectedHotspotId) {
+          setMapCenter([lat, lng]);
+          setMapZoom(16);
+        }
       },
       (err) => {
         console.warn('Geolocation error:', err.message);
         setIsLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 7000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     );
   };
 
@@ -180,7 +187,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
       setMapCenter([userLocation.lat, userLocation.lng]);
       setMapZoom(16);
     } else {
-      fetchUserLocation();
+      fetchUserLocation(true);
     }
   };
 
@@ -429,6 +436,24 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
           />
+
+          {/* User Live GPS Marker */}
+          {userLocation && (
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={L.divIcon({
+                className: 'user-gps-pulse-pin',
+                html: `
+                  <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                    <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(56, 189, 248, 0.4); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                    <div style="width: 14px; height: 14px; border-radius: 50%; background: #0284c7; border: 2.5px solid #ffffff; box-shadow: 0 0 10px rgba(56, 189, 248, 0.9);"></div>
+                  </div>
+                `,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              })}
+            />
+          )}
 
           {filteredHotspots.map((h) => {
             const icon = createHotspotIcon(h.category, h.status, h.corroboration_count);
