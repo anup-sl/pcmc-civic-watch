@@ -62,3 +62,6 @@
 .pt-safe {
   padding-top: max(0.75rem, env(safe-area-inset-top));
 }
+.header-safe-top {
+  padding-top: max(0.625rem, env(safe-area-inset-top, 0px));
+}

@@ -348,3 +348,41 @@ export async function corroborateHotspot(hotspotId: string, notes?: string) {
 
   return updated as Hotspot;
 }
+
+export interface FlagReportParams {
+  reportId?: string;
+  hotspotId?: string;
+  reason: 'private_property' | 'personal_dispute' | 'abusive_vulgar' | 'harassment_spam' | string;
+  reasonLabel: string;
+  notes?: string;
+}
+
+/**
+ * Submit community content flag/report for abusive, private, or prohibited content.
+ */
+export async function submitFlagReport(params: FlagReportParams): Promise<{ success: boolean }> {
+  try {
+    await supabase.from('flagged_reports').insert({
+      report_id: params.reportId || null,
+      hotspot_id: params.hotspotId || null,
+      reason: params.reason,
+      reason_label: params.reasonLabel,
+      notes: params.notes || null,
+      created_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('Flag logging to Supabase notice (gracefully cached locally):', err);
+  }
+
+  try {
+    const key = 'pcmc_flagged_items';
+    const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
+    if (params.reportId) existing.push(`report:${params.reportId}`);
+    if (params.hotspotId) existing.push(`hotspot:${params.hotspotId}`);
+    localStorage.setItem(key, JSON.stringify(Array.from(new Set(existing))));
+  } catch {
+    // ignore local storage restrictions
+  }
+
+  return { success: true };
+}

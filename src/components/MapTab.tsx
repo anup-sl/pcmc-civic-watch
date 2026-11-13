@@ -10,7 +10,8 @@ import {
   Clock, 
   Camera, 
   Send,
-  Download
+  Download,
+  Flag
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -19,6 +20,7 @@ import { CATEGORIES } from '../types';
 import { supabase, haversineDistanceMeters, submitClearanceReport } from '../supabase';
 import { PCMC_CENTER, getSLAStatus } from '../utils/geo';
 import { EscalateModal } from './EscalateModal';
+import { FlagModal } from './FlagModal';
 import { exportHotspotsToCSV } from '../utils/csvExport';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
@@ -128,6 +130,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
 
   // Escalation Modal state
   const [escalateTargetHotspot, setEscalateTargetHotspot] = useState<Hotspot | null>(null);
+  const [flagTarget, setFlagTarget] = useState<{ reportId?: string; hotspotId?: string } | null>(null);
 
   // Clearance Action States
   const [isClearing, setIsClearing] = useState<boolean>(false);
@@ -585,9 +588,20 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                             <span className="text-[10px] text-slate-400 font-mono">{dateStr}</span>
                           </div>
 
-                          <p className="text-[11px] text-slate-300 truncate">
-                            {report.notes || (report.report_type === 'CLEARANCE' ? 'Clearance photo verified' : 'Citizen report')}
-                          </p>
+                          <div className="flex items-center justify-between gap-1 pt-0.5">
+                            <p className="text-[11px] text-slate-300 truncate">
+                              {report.notes || (report.report_type === 'CLEARANCE' ? 'Clearance photo verified' : 'Citizen report')}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setFlagTarget({ reportId: report.id, hotspotId: selectedHotspot.id })}
+                              className="text-[10px] text-slate-400 hover:text-rose-400 shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800"
+                              title="Flag inappropriate or private image"
+                            >
+                              <Flag className="w-2.5 h-2.5 text-rose-400" />
+                              <span>Flag</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -743,6 +757,16 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                   <Send className="w-3.5 h-3.5" />
                   <span>{t.escalateEmail} (Ward Officer + Nodal Dept)</span>
                 </button>
+
+                {/* COMMUNITY CONTENT REPORT / FLAG BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => setFlagTarget({ hotspotId: selectedHotspot.id })}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Flag className="w-3.5 h-3.5 text-rose-400" />
+                  <span>{language === 'mr' ? 'आक्षेपार्ह फोटो / मजकुराची तक्रार करा' : 'Flag Inappropriate Content / Private Photo'}</span>
+                </button>
               </div>
             )}
           </div>
@@ -756,6 +780,16 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
           reports={reports}
           language={language}
           onClose={() => setEscalateTargetHotspot(null)}
+        />
+      )}
+
+      {/* 5. COMMUNITY CONTENT MODERATION / FLAG MODAL */}
+      {flagTarget && (
+        <FlagModal
+          language={language}
+          reportId={flagTarget.reportId}
+          hotspotId={flagTarget.hotspotId}
+          onClose={() => setFlagTarget(null)}
         />
       )}
     </div>

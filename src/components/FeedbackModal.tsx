@@ -256,6 +256,13 @@ export const FeedbackModal = ({ language, onClose }: FeedbackModalProps) => {
                 <span>Direct Email</span>
               </button>
             </div>
+
+            {/* Non-Affiliation Disclaimer */}
+            <p className="text-[10px] text-slate-500 text-center pt-1">
+              {language === 'mr'
+                ? 'स्वतंत्र नागरिक पुढाकार • PCMC शी संलग्न नाही'
+                : 'Independent citizen initiative • Not affiliated with PCMC'}
+            </p>
           </form>
         )}
       </div>

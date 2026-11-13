@@ -8,50 +8,50 @@ export interface PCMCLocation {
 
 // Comprehensive PCMC Localities & Prabhag Hubs
 export const PCMC_PRESETS: PCMCLocation[] = [
-  // Zone A: Nigdi, Pradhikaran, Akurdi, Chinchwad Station
-  { name: 'Nigdi Bhakti Shakti Chowk', ward: 'Prabhag 14', zone: 'Zone A', latitude: 18.6584, longitude: 73.7712 },
-  { name: 'Pradhikaran Sector 27', ward: 'Prabhag 14', zone: 'Zone A', latitude: 18.6510, longitude: 73.7650 },
-  { name: 'Akurdi Khandoba Mal & Railway Station', ward: 'Prabhag 15', zone: 'Zone A', latitude: 18.6478, longitude: 73.7821 },
-  { name: 'Chinchwad Railway Station Road', ward: 'Prabhag 19', zone: 'Zone A', latitude: 18.6355, longitude: 73.7884 },
+  // Zone A: Nigdi, Pradhikaran, Akurdi, Kiwale, Ravet, Chinchwad Station (Wards 10, 14, 15, 16, 19)
+  { name: 'Nigdi Bhakti Shakti Chowk', ward: 'Ward 14', zone: 'Zone A', latitude: 18.6584, longitude: 73.7712 },
+  { name: 'Pradhikaran Sector 27', ward: 'Ward 14', zone: 'Zone A', latitude: 18.6510, longitude: 73.7650 },
+  { name: 'Akurdi Khandoba Mal & Railway Station', ward: 'Ward 15', zone: 'Zone A', latitude: 18.6478, longitude: 73.7821 },
+  { name: 'Kiwale Mukai Chowk', ward: 'Ward 16', zone: 'Zone A', latitude: 18.6610, longitude: 73.7290 },
+  { name: 'Ravet Basket Bridge & BRT Road', ward: 'Ward 16', zone: 'Zone A', latitude: 18.6542, longitude: 73.7431 },
+  { name: 'Chinchwad Railway Station Road', ward: 'Ward 19', zone: 'Zone A', latitude: 18.6355, longitude: 73.7884 },
 
-  // Zone B: Kiwale, Ravet, Chinchwadgaon, Kalewadi
-  { name: 'Kiwale Mukai Chowk', ward: 'Prabhag 16', zone: 'Zone B', latitude: 18.6610, longitude: 73.7290 },
-  { name: 'Ravet Basket Bridge & BRT Road', ward: 'Prabhag 16', zone: 'Zone B', latitude: 18.6542, longitude: 73.7431 },
-  { name: 'Chinchwadgaon Mangalmurti Wada', ward: 'Prabhag 17', zone: 'Zone B', latitude: 18.6280, longitude: 73.7820 },
-  { name: 'Kalewadi Main Chowk', ward: 'Prabhag 22', zone: 'Zone B', latitude: 18.6080, longitude: 73.7920 },
+  // Zone B: Chinchwadgaon, Thergaon, Kalewadi, Rahatani (Wards 17, 18, 22, 23, 28)
+  { name: 'Chinchwadgaon Mangalmurti Wada', ward: 'Ward 17', zone: 'Zone B', latitude: 18.6280, longitude: 73.7820 },
+  { name: 'Thergaon Dange Chowk', ward: 'Ward 23', zone: 'Zone B', latitude: 18.6145, longitude: 73.7735 },
+  { name: 'Kalewadi Main Chowk', ward: 'Ward 22', zone: 'Zone B', latitude: 18.6080, longitude: 73.7920 },
+  { name: 'Rahatani Phata & Shivar Garden', ward: 'Ward 28', zone: 'Zone B', latitude: 18.6020, longitude: 73.7910 },
 
-  // Zone C: Bhosari, Indrayani Nagar, Moshi, Charholi
-  { name: 'Bhosari MIDC Spine Road', ward: 'Prabhag 05', zone: 'Zone C', latitude: 18.6392, longitude: 73.8427 },
-  { name: 'Indrayani Nagar Sector 4', ward: 'Prabhag 05', zone: 'Zone C', latitude: 18.6440, longitude: 73.8350 },
-  { name: 'Moshi Toll Naka & Spine City', ward: 'Prabhag 02', zone: 'Zone C', latitude: 18.6720, longitude: 73.8510 },
-  { name: 'Charholi Budruk & Wadmukhwadi', ward: 'Prabhag 08', zone: 'Zone C', latitude: 18.6250, longitude: 73.8820 },
+  // Zone C: Bhosari, Indrayani Nagar, Moshi, Charholi (Wards 02, 05, 06, 08)
+  { name: 'Bhosari MIDC Spine Road', ward: 'Ward 05', zone: 'Zone C', latitude: 18.6392, longitude: 73.8427 },
+  { name: 'Indrayani Nagar Sector 4', ward: 'Ward 05', zone: 'Zone C', latitude: 18.6440, longitude: 73.8350 },
+  { name: 'Moshi Toll Naka & Spine City', ward: 'Ward 02', zone: 'Zone C', latitude: 18.6720, longitude: 73.8510 },
+  { name: 'Charholi Budruk & Wadmukhwadi', ward: 'Ward 08', zone: 'Zone C', latitude: 18.6250, longitude: 73.8820 },
 
-  // Zone D: Wakad, Tathawade, Pimple Saudagar, Rahatani
-  { name: 'Wakad Bridge & Datta Mandir Road', ward: 'Prabhag 25', zone: 'Zone D', latitude: 18.5987, longitude: 73.7661 },
-  { name: 'Tathawade Bhujbal Chowk & JSPM', ward: 'Prabhag 25', zone: 'Zone D', latitude: 18.6050, longitude: 73.7530 },
-  { name: 'Punawale 18 Latitude Chowk', ward: 'Prabhag 25', zone: 'Zone D', latitude: 18.6220, longitude: 73.7450 },
-  { name: 'Pimple Saudagar Kokane Chowk', ward: 'Prabhag 28', zone: 'Zone D', latitude: 18.5952, longitude: 73.7981 },
-  { name: 'Rahatani Phata & Shivar Garden', ward: 'Prabhag 28', zone: 'Zone D', latitude: 18.6020, longitude: 73.7910 },
+  // Zone D: Wakad, Tathawade, Punawale, Pimple Saudagar (Wards 25, 26, 28, 29)
+  { name: 'Wakad Bridge & Datta Mandir Road', ward: 'Ward 25', zone: 'Zone D', latitude: 18.5987, longitude: 73.7661 },
+  { name: 'Tathawade Bhujbal Chowk & JSPM', ward: 'Ward 25', zone: 'Zone D', latitude: 18.6050, longitude: 73.7530 },
+  { name: 'Punawale 18 Latitude Chowk', ward: 'Ward 25', zone: 'Zone D', latitude: 18.6220, longitude: 73.7450 },
+  { name: 'Pimple Saudagar Kokane Chowk', ward: 'Ward 28', zone: 'Zone D', latitude: 18.5952, longitude: 73.7981 },
 
-  // Zone E: Dighi, Bopkhel, Bhosari East
-  { name: 'Dighi Magazine Chowk', ward: 'Prabhag 03', zone: 'Zone E', latitude: 18.6180, longitude: 73.8740 },
-  { name: 'Bopkhel Military Camp Road', ward: 'Prabhag 04', zone: 'Zone E', latitude: 18.5920, longitude: 73.8680 },
+  // Zone E: Dighi, Bopkhel, Bhosari East (Wards 03, 04, 07)
+  { name: 'Dighi Magazine Chowk', ward: 'Ward 03', zone: 'Zone E', latitude: 18.6180, longitude: 73.8740 },
+  { name: 'Bopkhel Military Camp Road', ward: 'Ward 04', zone: 'Zone E', latitude: 18.5920, longitude: 73.8680 },
 
-  // Zone F: Chikhali, Talawade, Rupeenagar
-  { name: 'Chikhali Kudalwadi Chowk', ward: 'Prabhag 01', zone: 'Zone F', latitude: 18.6750, longitude: 73.8120 },
-  { name: 'Talawade IT Park Tower', ward: 'Prabhag 12', zone: 'Zone F', latitude: 18.6850, longitude: 73.7780 },
-  { name: 'Rupeenagar Main Market', ward: 'Prabhag 13', zone: 'Zone F', latitude: 18.6710, longitude: 73.7850 },
+  // Zone F: Chikhali, Talawade, Rupeenagar (Wards 01, 11, 12, 13)
+  { name: 'Chikhali Kudalwadi Chowk', ward: 'Ward 01', zone: 'Zone F', latitude: 18.6750, longitude: 73.8120 },
+  { name: 'Talawade IT Park Tower', ward: 'Ward 12', zone: 'Zone F', latitude: 18.6850, longitude: 73.7780 },
+  { name: 'Rupeenagar Main Market', ward: 'Ward 13', zone: 'Zone F', latitude: 18.6710, longitude: 73.7850 },
 
-  // Zone G: Pimpri Camp, Thergaon, Vallabhnagar
-  { name: 'Pimpri Market Chowk & PCMC Bhavan', ward: 'Prabhag 21', zone: 'Zone G', latitude: 18.6278, longitude: 73.8015 },
-  { name: 'Thergaon Dange Chowk', ward: 'Prabhag 23', zone: 'Zone G', latitude: 18.6145, longitude: 73.7735 },
-  { name: 'Vallabhnagar ST Stand & Dr. DY Patil', ward: 'Prabhag 20', zone: 'Zone G', latitude: 18.6240, longitude: 73.8190 },
+  // Zone G: Pimpri Camp, Nehrunagar, Vallabhnagar (Wards 09, 20, 21)
+  { name: 'Pimpri Market Chowk & PCMC Bhavan', ward: 'Ward 21', zone: 'Zone G', latitude: 18.6278, longitude: 73.8015 },
+  { name: 'Vallabhnagar ST Stand & Dr. DY Patil', ward: 'Ward 20', zone: 'Zone G', latitude: 18.6240, longitude: 73.8190 },
 
-  // Zone H: Sangvi, Dapodi, Kasarwadi, Pimple Gurav
-  { name: 'Sangvi Old PWD Chowk & Famous Chowk', ward: 'Prabhag 30', zone: 'Zone H', latitude: 18.5772, longitude: 73.8184 },
-  { name: 'Pimple Gurav Kate Puram Chowk', ward: 'Prabhag 27', zone: 'Zone H', latitude: 18.5880, longitude: 73.8080 },
-  { name: 'Dapodi CME Gate & Khadki Border', ward: 'Prabhag 31', zone: 'Zone H', latitude: 18.5810, longitude: 73.8340 },
-  { name: 'Kasarwadi Nashik Phata Metro Station', ward: 'Prabhag 24', zone: 'Zone H', latitude: 18.6090, longitude: 73.8210 }
+  // Zone H: Sangvi, Dapodi, Kasarwadi, Pimple Gurav (Wards 24, 27, 30, 31, 32)
+  { name: 'Sangvi Old PWD Chowk & Famous Chowk', ward: 'Ward 30', zone: 'Zone H', latitude: 18.5772, longitude: 73.8184 },
+  { name: 'Pimple Gurav Kate Puram Chowk', ward: 'Ward 27', zone: 'Zone H', latitude: 18.5880, longitude: 73.8080 },
+  { name: 'Dapodi CME Gate & Khadki Border', ward: 'Ward 31', zone: 'Zone H', latitude: 18.5810, longitude: 73.8340 },
+  { name: 'Kasarwadi Nashik Phata Metro Station', ward: 'Ward 24', zone: 'Zone H', latitude: 18.6090, longitude: 73.8210 }
 ];
 
 export const PCMC_CENTER = {

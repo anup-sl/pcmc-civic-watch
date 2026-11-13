@@ -16,7 +16,8 @@ import {
   Search,
   ChevronRight,
   ShieldAlert,
-  HelpCircle
+  HelpCircle,
+  Flag
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CATEGORIES } from '../types';
@@ -24,7 +25,8 @@ import type { Category, Hotspot } from '../types';
 import { submitCivicReport, supabase, haversineDistanceMeters } from '../supabase';
 import type { SubmitReportResult } from '../supabase';
 import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation, getSLAStatus } from '../utils/geo';
-import { getZoneForArea } from '../utils/pcmcDirectory';
+import { getZoneForArea, getWardForArea } from '../utils/pcmcDirectory';
+import { FlagModal } from './FlagModal';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
@@ -64,6 +66,8 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   const [allHotspots, setAllHotspots] = useState<Hotspot[]>([]);
   const [submissionResult, setSubmissionResult] = useState<SubmitReportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [contentCheckConfirmed, setContentCheckConfirmed] = useState<boolean>(true);
+  const [showFlagInfoModal, setShowFlagInfoModal] = useState<boolean>(false);
 
   // Fetch all hotspots to calculate ward-specific dashboard metrics
   const fetchAllHotspots = async () => {
@@ -84,6 +88,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   // Compute 1-line Ward Status Summary for the active locality
   const wardSummary = useMemo(() => {
     const zoneInfo = getZoneForArea(areaName);
+    const wardInfo = getWardForArea(areaName);
     const lowerArea = areaName.toLowerCase();
 
     const inWard = allHotspots.filter(h => {
@@ -102,6 +107,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
 
     return {
       zoneInfo,
+      wardInfo,
       openCount,
       overdueCount,
       resolvedCount,
@@ -265,6 +271,13 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
     e.preventDefault();
     if (!photoBlob && !photoPreviewUrl) {
       setErrorMessage(language === 'mr' ? 'कृपया समस्येचा फोटो घ्या.' : 'Please snap a photo of the civic issue before submitting.');
+      return;
+    }
+
+    if (!contentCheckConfirmed) {
+      setErrorMessage(language === 'mr' 
+        ? 'कृपया पुष्टी करा की फोटोमध्ये खाजगी जागा, वैयक्तिक वाद किंवा आक्षेपार्ह मजकूर नाही.' 
+        : 'Please confirm that your photo complies with public civic guidelines.');
       return;
     }
 
@@ -456,10 +469,10 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="font-extrabold text-[10px] text-cyan-400 uppercase tracking-wider bg-cyan-950/90 border border-cyan-800/80 px-1.5 py-0.5 rounded shrink-0">
-            {wardSummary.zoneInfo.zone}
+            {language === 'mr' ? `प्रभाग ${wardSummary.wardInfo.wardNo}` : `Ward ${wardSummary.wardInfo.wardNo}`}
           </span>
           <span className="text-slate-300 text-[11px] font-medium truncate">
-            {language === 'mr' ? wardSummary.zoneInfo.marathiZone : wardSummary.zoneInfo.coverage.split('(')[0].trim()}
+            {language === 'mr' ? wardSummary.wardInfo.marathiWardLabel : wardSummary.wardInfo.wardLabel} • {wardSummary.wardInfo.zone}
           </span>
         </div>
 
@@ -775,6 +788,40 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
             </div>
           </div>
 
+          {/* ANTI-ABUSE & COMMUNITY SAFETY DECLARATION */}
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={contentCheckConfirmed}
+                onChange={(e) => setContentCheckConfirmed(e.target.checked)}
+                className="w-4 h-4 mt-0.5 accent-cyan-500 rounded border-slate-700 shrink-0"
+              />
+              <div className="text-[11px] leading-relaxed text-slate-300">
+                <span className="font-bold text-white block">
+                  {language === 'mr' ? 'सार्वजनिक नागरी समस्या घोषणा' : 'Public Civic Issue Confirmation'}
+                </span>
+                {language === 'mr'
+                  ? 'मी पुष्टी करतो/करते की हा फोटो केवळ सार्वजनिक नागरी समस्येचा आहे. यात खाजगी मालमत्ता, वादग्रस्त वाहन नंबर किंवा अश्लील मजकूर नाही.'
+                  : 'I confirm this photo is strictly for a public civic issue and does not show private property interiors, vehicle license plates in personal disputes, or abusive/vulgar content.'}
+              </div>
+            </label>
+            <div className="text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/80">
+              <span className="flex items-center gap-1 text-slate-400">
+                <ShieldAlert className="w-3 h-3 text-cyan-400 shrink-0" />
+                {language === 'mr' ? 'उल्लंघन आढळल्यास फोटो तत्काळ हटवला जातो' : 'Prohibited uploads are reviewed & deleted'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowFlagInfoModal(true)}
+                className="text-rose-400 hover:text-rose-300 underline font-semibold flex items-center gap-1"
+              >
+                <Flag className="w-3 h-3" />
+                <span>{language === 'mr' ? 'आक्षेप नोंदवा / नियम' : 'Report / Rules'}</span>
+              </button>
+            </div>
+          </div>
+
           {/* ERROR ALERT */}
           {errorMessage && (
             <div className="p-3 bg-rose-950/50 border border-rose-800 rounded-xl text-rose-300 text-xs flex items-center gap-2">
@@ -810,6 +857,28 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
             )}
           </button>
         </form>
+      )}
+
+      {/* NON-AFFILIATION CITIZEN INITIATIVE FOOTER */}
+      <footer className="pt-5 pb-2 text-center border-t border-slate-900 mt-4 space-y-1">
+        <p className="text-[11px] font-bold text-slate-300 leading-snug">
+          {language === 'mr'
+            ? 'एक स्वतंत्र, गैर-व्यावसायिक नागरिक पुढाकार. पिंपरी चिंचवड महानगरपालिका (PCMC) शी संलग्न किंवा मान्यताप्राप्त नाही.'
+            : 'An independent, non-commercial citizen initiative. Not affiliated with or endorsed by Pimpri Chinchwad Municipal Corporation (PCMC).'}
+        </p>
+        <p className="text-[10px] text-slate-500">
+          {language === 'mr'
+            ? 'नागरी समस्यांचे जलद निवारण व प्रभागनिहाय पारदर्शकता वाढवण्यासाठी नागरिकांनी नागरिकांसाठी तयार केलेले व्यासपीठ.'
+            : 'Built by citizens for transparent municipal issue tracking & community verification.'}
+        </p>
+      </footer>
+
+      {/* Content Flagging / Moderation Guidelines Modal */}
+      {showFlagInfoModal && (
+        <FlagModal
+          language={language}
+          onClose={() => setShowFlagInfoModal(false)}
+        />
       )}
     </div>
   );

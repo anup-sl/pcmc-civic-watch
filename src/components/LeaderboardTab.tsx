@@ -17,7 +17,7 @@ import {
 import { supabase } from '../supabase';
 import type { Hotspot } from '../types';
 import { getSLAStatus, PCMC_PRESETS, reverseGeocodeLocation } from '../utils/geo';
-import { getZoneForArea } from '../utils/pcmcDirectory';
+import { getZoneForArea, getWardForArea } from '../utils/pcmcDirectory';
 import { exportHotspotsToCSV } from '../utils/csvExport';
 import { DirectoryModal } from './DirectoryModal';
 import type { Language } from '../utils/i18n';
@@ -103,6 +103,7 @@ export const LeaderboardTab = ({ language }: LeaderboardTabProps) => {
   // Compute Ward-Specific Incident Numbers & Statuses
   const wardStats = useMemo(() => {
     const zoneInfo = getZoneForArea(selectedWardName);
+    const wardInfo = getWardForArea(selectedWardName);
     const lowerArea = selectedWardName.toLowerCase();
 
     // Hotspots in this ward / zone / locality
@@ -130,6 +131,7 @@ export const LeaderboardTab = ({ language }: LeaderboardTabProps) => {
 
     return {
       zoneInfo,
+      wardInfo,
       inWardCount: inWard.length,
       openCount,
       overdueCount,
@@ -268,7 +270,7 @@ export const LeaderboardTab = ({ language }: LeaderboardTabProps) => {
           <div className="space-y-0.5 min-w-0 flex-1">
             <div className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 border border-cyan-800/80 px-2.5 py-0.5 rounded-lg max-w-full">
               <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
-              <span className="truncate">{wardStats.zoneInfo.zone} • {language === 'mr' ? wardStats.zoneInfo.marathiZone : t.detectedPrabhag}</span>
+              <span className="truncate">{language === 'mr' ? wardStats.wardInfo.marathiWardLabel : wardStats.wardInfo.wardLabel} • {wardStats.zoneInfo.zone}</span>
             </div>
 
             {/* Editable Area Name / Prabhag */}
@@ -617,6 +619,20 @@ export const LeaderboardTab = ({ language }: LeaderboardTabProps) => {
           </div>
         )}
       </div>
+
+      {/* NON-AFFILIATION CITIZEN INITIATIVE FOOTER */}
+      <footer className="pt-5 pb-2 text-center border-t border-slate-900 mt-4 space-y-1">
+        <p className="text-[11px] font-bold text-slate-300 leading-snug">
+          {language === 'mr'
+            ? 'एक स्वतंत्र, गैर-व्यावसायिक नागरिक पुढाकार. पिंपरी चिंचवड महानगरपालिका (PCMC) शी संलग्न किंवा मान्यताप्राप्त नाही.'
+            : 'An independent, non-commercial citizen initiative. Not affiliated with or endorsed by Pimpri Chinchwad Municipal Corporation (PCMC).'}
+        </p>
+        <p className="text-[10px] text-slate-500">
+          {language === 'mr'
+            ? 'नागरी समस्यांचे जलद निवारण व प्रभागनिहाय पारदर्शकता वाढवण्यासाठी नागरिकांनी नागरिकांसाठी तयार केलेले व्यासपीठ.'
+            : 'Built by citizens for transparent municipal issue tracking & community verification.'}
+        </p>
+      </footer>
 
       {/* Directory Modal */}
       {showDirectoryModal && (

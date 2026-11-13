@@ -53,7 +53,7 @@ export function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Sticky Top Header with Brand & Bilingual Switcher */}
-      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
+      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 header-safe-top">
         <div className="max-w-lg mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-2.5 min-w-0">

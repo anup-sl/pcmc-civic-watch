@@ -224,6 +224,20 @@ export const DirectoryModal = ({ language, onClose }: DirectoryModalProps) => {
             </a>
           </div>
         </div>
+
+        {/* NON-AFFILIATION CITIZEN INITIATIVE NOTICE */}
+        <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-center space-y-1">
+          <p className="text-[11px] font-bold text-slate-300">
+            {language === 'mr'
+              ? 'एक स्वतंत्र, गैर-व्यावसायिक नागरिक पुढाकार. पिंपरी चिंचवड महानगरपालिका (PCMC) शी संलग्न किंवा मान्यताप्राप्त नाही.'
+              : 'An independent, non-commercial citizen initiative. Not affiliated with or endorsed by Pimpri Chinchwad Municipal Corporation (PCMC).'}
+          </p>
+          <p className="text-[10px] text-slate-500">
+            {language === 'mr'
+              ? 'संपर्क माहिती नागरिकांच्या सोयीसाठी अधिकृत सार्वजनिक स्रोतांवरून संकलित करण्यात आली आहे.'
+              : 'Directory information compiled from public records for citizen civic access.'}
+          </p>
+        </div>
       </div>
     </div>
   );
