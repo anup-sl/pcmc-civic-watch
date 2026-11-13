@@ -177,7 +177,10 @@ export function App() {
           />
         )}
         {activeTab === 'leaderboard' && (
-          <LeaderboardTab language={language} />
+          <LeaderboardTab 
+            language={language} 
+            onNavigateToMap={handleNavigateToMap} 
+          />
         )}
       </main>
 
