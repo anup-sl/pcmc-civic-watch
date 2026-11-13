@@ -151,6 +151,14 @@ export async function reverseGeocodeLocation(lat: number, lon: number): Promise<
         formatted = (data.display_name || '').split(',').slice(0, 3).join(', ').trim();
       }
 
+      // If the address lacks a specific road, neighborhood, or suburb, or is simply "Pimpri-Chinchwad",
+      // enrich it with the nearest known PCMC locality (e.g. "Kiwale Mukai Chowk")
+      const hasSpecificDetail = primaryRoad || neighbourhood || suburb;
+      if (!hasSpecificDetail || formatted === 'Pimpri-Chinchwad' || !formatted) {
+        const nearestLocality = estimatePCMCArea(lat, lon);
+        formatted = `${nearestLocality}, Pimpri-Chinchwad`;
+      }
+
       // If outside PCMC, tag with context
       if (!isWithinPCMC) {
         const nearestPCMC = estimatePCMCArea(lat, lon);

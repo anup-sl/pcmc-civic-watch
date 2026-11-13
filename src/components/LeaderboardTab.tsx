@@ -84,7 +84,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
         try {
           const res = await reverseGeocodeLocation(pos.coords.latitude, pos.coords.longitude);
           if (res.formattedArea) {
-            const ward = getWardForArea(res.formattedArea);
+            const ward = getWardForArea(res.formattedArea, pos.coords.latitude, pos.coords.longitude);
             setGpsWardInfo(ward);
           }
         } catch {
@@ -113,7 +113,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
 
     hotspots.forEach((h) => {
       const rawName = h.area_name || 'Pimpri-Chinchwad';
-      const wardInfo = getWardForArea(rawName);
+      const wardInfo = getWardForArea(rawName, h.latitude, h.longitude);
       // Key grouping by ward number + locality to prevent awkward fragmenting
       const groupingKey = `${wardInfo.badge}-${wardInfo.locality}`;
 
@@ -190,10 +190,9 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
 
     if (selectedWardFilter !== 'ALL' && activeWardInfo) {
       relevantHotspots = hotspots.filter(h => {
-        const hWard = getWardForArea(h.area_name || '');
+        const hWard = getWardForArea(h.area_name || '', h.latitude, h.longitude);
         return (
           hWard.wardNo === activeWardInfo.wardNo ||
-          hWard.zone === activeWardInfo.zone ||
           (h.area_name || '').toLowerCase().includes(activeWardInfo.locality.toLowerCase())
         );
       });
@@ -646,7 +645,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         {presets.map((p) => {
-                          const wInfo = getWardForArea(p.name);
+                          const wInfo = getWardForArea(p.name, p.latitude, p.longitude);
                           const isSelected = selectedWardFilter.toLowerCase().includes(p.name.toLowerCase());
 
                           return (

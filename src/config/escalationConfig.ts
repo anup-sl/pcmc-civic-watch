@@ -216,9 +216,11 @@ export function buildEscalationRouting(params: {
   areaName: string;
   isOverdue: boolean;
   forceCommissionerTier?: boolean;
+  latitude?: number;
+  longitude?: number;
 }): EscalationRouting {
   const catConfig = getCategoryEscalationConfig(params.category);
-  const zone = getZoneForArea(params.areaName);
+  const zone = getZoneForArea(params.areaName, params.latitude, params.longitude);
 
   // TO: Primary departmental official + Zonal office
   const toEmails: string[] = [...catConfig.primary_official.to_emails];

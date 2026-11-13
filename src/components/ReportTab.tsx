@@ -71,6 +71,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   const [showFlagInfoModal, setShowFlagInfoModal] = useState<boolean>(false);
   const [isScanningImage, setIsScanningImage] = useState<boolean>(false);
   const [imageScanError, setImageScanError] = useState<{ reason: string; marathiReason: string } | null>(null);
+  const [isManualArea, setIsManualArea] = useState<boolean>(false);
 
   // Fetch all hotspots to calculate ward-specific dashboard metrics
   const fetchAllHotspots = async () => {
@@ -90,14 +91,12 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
 
   // Compute 1-line Ward Status Summary for the active locality
   const wardSummary = useMemo(() => {
-    const zoneInfo = getZoneForArea(areaName);
-    const wardInfo = getWardForArea(areaName);
-    const lowerArea = areaName.toLowerCase();
+    const zoneInfo = getZoneForArea(areaName, latitude, longitude);
+    const wardInfo = getWardForArea(areaName, latitude, longitude);
 
     const inWard = allHotspots.filter(h => {
-      const hArea = (h.area_name || '').toLowerCase();
-      const hZone = getZoneForArea(h.area_name);
-      return hZone.zone === zoneInfo.zone || hArea.includes(lowerArea) || lowerArea.includes(hArea);
+      const hWard = getWardForArea(h.area_name || '', h.latitude, h.longitude);
+      return hWard.wardNo === wardInfo.wardNo;
     });
 
     const openCount = inWard.filter(h => h.status === 'OPEN' || h.status === 'CHRONIC_REOPENED').length;
@@ -116,7 +115,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       resolvedCount,
       totalCount: inWard.length
     };
-  }, [allHotspots, areaName]);
+  }, [allHotspots, areaName, latitude, longitude]);
 
   // Quick Phrases
   const quickPhrasesByCategory: Record<Category, string[]> = {
@@ -190,9 +189,11 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   };
 
   // Grab live GPS from device
-  const grabLiveGPS = () => {
+  const grabLiveGPS = (forceOverwrite = false) => {
     if (!navigator.geolocation) {
-      resolveAddressForCoords(PCMC_CENTER.latitude, PCMC_CENTER.longitude);
+      if (!isManualArea || forceOverwrite) {
+        resolveAddressForCoords(PCMC_CENTER.latitude, PCMC_CENTER.longitude);
+      }
       return;
     }
 
@@ -205,12 +206,16 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
         setLongitude(lng);
         setAccuracy(Math.round(pos.coords.accuracy));
         setIsLocating(false);
-        resolveAddressForCoords(lat, lng);
+        if (!isManualArea || forceOverwrite) {
+          resolveAddressForCoords(lat, lng);
+        }
       },
       (err) => {
         console.warn('Geolocation warning, defaulting to PCMC center:', err.message);
         setIsLocating(false);
-        resolveAddressForCoords(latitude, longitude);
+        if (!isManualArea || forceOverwrite) {
+          resolveAddressForCoords(latitude, longitude);
+        }
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     );
@@ -253,7 +258,9 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   }, [latitude, longitude, selectedCategory]);
 
   const triggerCameraSnap = () => {
-    grabLiveGPS();
+    if (!isManualArea) {
+      grabLiveGPS();
+    }
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -359,7 +366,8 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
     setNotes('');
     setSubmissionResult(null);
     setErrorMessage(null);
-    grabLiveGPS();
+    setIsManualArea(false);
+    grabLiveGPS(true);
   };
 
   const openNearbyMatch = nearbyHotspots.find(
@@ -407,7 +415,10 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
               />
               <button
                 type="button"
-                onClick={() => setIsEditingArea(false)}
+                onClick={() => {
+                  setIsEditingArea(false);
+                  setIsManualArea(true);
+                }}
                 className="px-2 py-0.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px]"
               >
                 Save
@@ -433,7 +444,10 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
-            onClick={grabLiveGPS}
+            onClick={() => {
+              setIsManualArea(false);
+              grabLiveGPS(true);
+            }}
             disabled={isLocating}
             className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all"
           >
@@ -476,6 +490,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
                   setAreaName(`${preset.name}, Pimpri-Chinchwad`);
                   setIsOutsidePCMC(false);
                   setShowLocationPicker(false);
+                  setIsManualArea(true);
                 }}
                 className="text-left p-2 rounded-lg text-[11px] border bg-slate-950 border-slate-800 hover:border-cyan-500/60 text-slate-300 hover:text-white transition-colors"
               >
