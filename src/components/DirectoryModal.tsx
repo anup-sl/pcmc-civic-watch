@@ -237,6 +237,18 @@ export const DirectoryModal = ({ language, onClose }: DirectoryModalProps) => {
               ? 'संपर्क माहिती नागरिकांच्या सोयीसाठी अधिकृत सार्वजनिक स्रोतांवरून संकलित करण्यात आली आहे.'
               : 'Directory information compiled from public records for citizen civic access.'}
           </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('open_moderator_portal'));
+              }}
+              className="text-[10px] text-slate-500 hover:text-cyan-400 font-semibold underline transition-colors"
+            >
+              Moderator Desk / Review Queue (PIN Protected)
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -357,21 +357,41 @@ export interface FlagReportParams {
   notes?: string;
 }
 
+export interface ModerationQueueItem {
+  id: string;
+  hotspot_id: string;
+  created_at: string;
+  reason: string;
+  reason_label: string;
+  notes?: string;
+  target_report_id?: string;
+  hotspot?: Hotspot | null;
+  target_report?: Report | null;
+}
+
 /**
  * Submit community content flag/report for abusive, private, or prohibited content.
+ * Stores directly in Supabase reports table with report_type = 'FLAG' for instant cross-device moderator review.
  */
 export async function submitFlagReport(params: FlagReportParams): Promise<{ success: boolean }> {
   try {
-    await supabase.from('flagged_reports').insert({
-      report_id: params.reportId || null,
-      hotspot_id: params.hotspotId || null,
+    const payload = JSON.stringify({
       reason: params.reason,
-      reason_label: params.reasonLabel,
-      notes: params.notes || null,
-      created_at: new Date().toISOString()
+      reasonLabel: params.reasonLabel,
+      notes: params.notes || '',
+      targetReportId: params.reportId || ''
     });
+
+    if (params.hotspotId) {
+      await supabase.from('reports').insert({
+        hotspot_id: params.hotspotId,
+        report_type: 'FLAG',
+        photo_url: '',
+        notes: payload
+      });
+    }
   } catch (err) {
-    console.warn('Flag logging to Supabase notice (gracefully cached locally):', err);
+    console.warn('Flag logging notice:', err);
   }
 
   try {
@@ -381,8 +401,157 @@ export async function submitFlagReport(params: FlagReportParams): Promise<{ succ
     if (params.hotspotId) existing.push(`hotspot:${params.hotspotId}`);
     localStorage.setItem(key, JSON.stringify(Array.from(new Set(existing))));
   } catch {
-    // ignore local storage restrictions
+    // ignore
   }
 
   return { success: true };
+}
+
+/**
+ * Fetch all items in the moderation queue for the Moderator Portal
+ */
+export async function fetchModerationQueue(): Promise<ModerationQueueItem[]> {
+  try {
+    const { data: flagRows, error } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('report_type', 'FLAG')
+      .order('created_at', { ascending: false });
+
+    if (error || !flagRows) return [];
+
+    const queue: ModerationQueueItem[] = [];
+
+    for (const row of flagRows) {
+      let parsedPayload: { reason?: string; reasonLabel?: string; notes?: string; targetReportId?: string } = {};
+      try {
+        if (row.notes && row.notes.startsWith('{')) {
+          parsedPayload = JSON.parse(row.notes);
+        } else {
+          parsedPayload = { reason: 'reported', reasonLabel: row.notes || 'Community Flag' };
+        }
+      } catch {
+        parsedPayload = { reason: 'reported', reasonLabel: row.notes || 'Community Flag' };
+      }
+
+      // Fetch hotspot details
+      let hotspot: Hotspot | null = null;
+      if (row.hotspot_id) {
+        const { data: hData } = await supabase
+          .from('hotspots')
+          .select('*')
+          .eq('id', row.hotspot_id)
+          .single();
+        if (hData) hotspot = hData as Hotspot;
+      }
+
+      // Fetch target report if available, else pick first photo report for this hotspot
+      let targetReport: Report | null = null;
+      if (parsedPayload.targetReportId) {
+        const { data: rData } = await supabase
+          .from('reports')
+          .select('*')
+          .eq('id', parsedPayload.targetReportId)
+          .single();
+        if (rData) targetReport = rData as Report;
+      } else if (row.hotspot_id) {
+        const { data: rData } = await supabase
+          .from('reports')
+          .select('*')
+          .eq('hotspot_id', row.hotspot_id)
+          .neq('report_type', 'FLAG')
+          .order('created_at', { ascending: true })
+          .limit(1);
+        if (rData && rData.length > 0) targetReport = rData[0] as Report;
+      }
+
+      queue.push({
+        id: row.id,
+        hotspot_id: row.hotspot_id,
+        created_at: row.created_at,
+        reason: parsedPayload.reason || 'abusive_vulgar',
+        reason_label: parsedPayload.reasonLabel || 'Community Content Violation',
+        notes: parsedPayload.notes || undefined,
+        target_report_id: parsedPayload.targetReportId || targetReport?.id,
+        hotspot,
+        target_report: targetReport
+      });
+    }
+
+    return queue;
+  } catch (e) {
+    console.warn('Error fetching moderation queue:', e);
+    return [];
+  }
+}
+
+/**
+ * Permanently delete violating content: deletes target report, purges hotspot if empty, and removes flag
+ */
+export async function deleteModeratedContent(
+  flagId: string,
+  targetReportId?: string,
+  hotspotId?: string
+): Promise<{ success: boolean }> {
+  try {
+    // 1. Delete target violating report if present
+    if (targetReportId) {
+      await supabase.from('reports').delete().eq('id', targetReportId);
+    }
+
+    // 2. Delete the flag record
+    await supabase.from('reports').delete().eq('id', flagId);
+
+    // 3. Check remaining reports for this hotspot
+    if (hotspotId) {
+      const { data: remaining } = await supabase
+        .from('reports')
+        .select('id')
+        .eq('hotspot_id', hotspotId)
+        .neq('report_type', 'FLAG');
+
+      if (!remaining || remaining.length === 0) {
+        // No remaining reports; purge the entire hotspot
+        await supabase.from('hotspots').delete().eq('id', hotspotId);
+      } else {
+        // Decrement count
+        await supabase
+          .from('hotspots')
+          .update({ corroboration_count: remaining.length })
+          .eq('id', hotspotId);
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting moderated content:', err);
+    throw err;
+  }
+}
+
+/**
+ * Dismiss a flag (e.g. false alarm), keeping the civic issue intact
+ */
+export async function dismissModerationFlag(flagId: string): Promise<{ success: boolean }> {
+  try {
+    await supabase.from('reports').delete().eq('id', flagId);
+    return { success: true };
+  } catch (err) {
+    console.error('Error dismissing flag:', err);
+    throw err;
+  }
+}
+
+/**
+ * Directly delete any hotspot and its associated reports
+ */
+export async function deleteHotspotDirect(hotspotId: string): Promise<{ success: boolean }> {
+  try {
+    await supabase.from('reports').delete().eq('hotspot_id', hotspotId);
+    await supabase.from('hotspots').delete().eq('id', hotspotId);
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting hotspot direct:', err);
+    throw err;
+  }
 }

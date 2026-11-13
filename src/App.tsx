@@ -5,6 +5,7 @@ import { LeaderboardTab } from './components/LeaderboardTab';
 import { BottomNav, type TabKey } from './components/BottomNav';
 import { DirectoryModal } from './components/DirectoryModal';
 import { FeedbackModal } from './components/FeedbackModal';
+import { ModeratorPortal } from './components/ModeratorPortal';
 import { InstallPrompt } from './components/InstallPrompt';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
@@ -17,8 +18,30 @@ export function App() {
   const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
+  const [showModeratorPortal, setShowModeratorPortal] = useState<boolean>(false);
+  const [logoClicks, setLogoClicks] = useState<number>(0);
 
   const t = TRANSLATIONS[language];
+
+  // Auto-open moderator portal if ?admin or ?mod in URL or via custom event
+  useEffect(() => {
+    if (window.location.search.includes('admin') || window.location.search.includes('mod')) {
+      setShowModeratorPortal(true);
+    }
+    const handleOpenMod = () => setShowModeratorPortal(true);
+    window.addEventListener('open_moderator_portal', handleOpenMod);
+    return () => window.removeEventListener('open_moderator_portal', handleOpenMod);
+  }, []);
+
+  const handleLogoClick = () => {
+    const next = logoClicks + 1;
+    setLogoClicks(next);
+    if (next >= 5) {
+      setShowModeratorPortal(true);
+      setLogoClicks(0);
+    }
+    setTimeout(() => setLogoClicks(0), 3000);
+  };
 
   // Load saved language preference
   useEffect(() => {
@@ -57,7 +80,13 @@ export function App() {
         <div className="max-w-lg mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-cyan-900/30">
+            <div 
+              onClick={handleLogoClick}
+              role="button"
+              tabIndex={0}
+              title="PCMC CivicWatch"
+              className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-cyan-900/30 cursor-pointer active:scale-90 transition-transform"
+            >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <circle cx="12" cy="11" r="2.5"/>
@@ -167,6 +196,14 @@ export function App() {
         <FeedbackModal
           language={language}
           onClose={() => setShowFeedbackModal(false)}
+        />
+      )}
+
+      {/* Admin / Moderator Portal */}
+      {showModeratorPortal && (
+        <ModeratorPortal
+          language={language}
+          onClose={() => setShowModeratorPortal(false)}
         />
       )}
     </div>

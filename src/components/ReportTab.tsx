@@ -27,6 +27,7 @@ import type { SubmitReportResult } from '../supabase';
 import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation, getSLAStatus } from '../utils/geo';
 import { getZoneForArea, getWardForArea } from '../utils/pcmcDirectory';
 import { FlagModal } from './FlagModal';
+import { analyzeImageContent } from '../utils/contentModeration';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
@@ -68,6 +69,8 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [contentCheckConfirmed, setContentCheckConfirmed] = useState<boolean>(true);
   const [showFlagInfoModal, setShowFlagInfoModal] = useState<boolean>(false);
+  const [isScanningImage, setIsScanningImage] = useState<boolean>(false);
+  const [imageScanError, setImageScanError] = useState<{ reason: string; marathiReason: string } | null>(null);
 
   // Fetch all hotspots to calculate ward-specific dashboard metrics
   const fetchAllHotspots = async () => {
@@ -256,19 +259,48 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
     }
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPhotoBlob(file);
-      const url = URL.createObjectURL(file);
-      setPhotoPreviewUrl(url);
-      setSubmissionResult(null);
+      setIsScanningImage(true);
+      setImageScanError(null);
       setErrorMessage(null);
+
+      try {
+        const mod = await analyzeImageContent(file);
+        if (!mod.isAllowed) {
+          setImageScanError({
+            reason: mod.reason,
+            marathiReason: mod.marathiReason
+          });
+          setPhotoBlob(null);
+          setPhotoPreviewUrl(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+
+        setPhotoBlob(file);
+        const url = URL.createObjectURL(file);
+        setPhotoPreviewUrl(url);
+        setSubmissionResult(null);
+      } catch (err) {
+        console.warn('Image moderation scan notice:', err);
+        setPhotoBlob(file);
+        const url = URL.createObjectURL(file);
+        setPhotoPreviewUrl(url);
+      } finally {
+        setIsScanningImage(false);
+      }
     }
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (imageScanError) {
+      setErrorMessage(language === 'mr' ? imageScanError.marathiReason : imageScanError.reason);
+      return;
+    }
+
     if (!photoBlob && !photoPreviewUrl) {
       setErrorMessage(language === 'mr' ? 'कृपया समस्येचा फोटो घ्या.' : 'Please snap a photo of the civic issue before submitting.');
       return;
@@ -322,6 +354,8 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   const resetForm = () => {
     setPhotoBlob(null);
     setPhotoPreviewUrl(null);
+    setImageScanError(null);
+    setIsScanningImage(false);
     setNotes('');
     setSubmissionResult(null);
     setErrorMessage(null);
@@ -500,6 +534,34 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       {/* ======================================================== */}
       {/* 3. CAMERA ACTION: COMPACT SNAP CIVIC ISSUE BUTTON         */}
       {/* ======================================================== */}
+      {isScanningImage && (
+        <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-xs text-cyan-200 flex items-center justify-center gap-2 animate-pulse">
+          <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+          <span className="font-semibold">{language === 'mr' ? 'फोटो सुरक्षा व नागरी निकष तपासत आहे...' : 'Scanning photo safety & civic context...'}</span>
+        </div>
+      )}
+
+      {imageScanError && (
+        <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-500/60 text-xs text-rose-200 space-y-2 animate-in fade-in duration-200">
+          <div className="flex items-start gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-rose-300 block text-xs">
+                {language === 'mr' ? '🚫 फोटो सुरक्षा नियमांचे उल्लंघन - फोटो नाकारला' : '🚫 Photo Blocked: Prohibited Content Detected'}
+              </span>
+              <span className="text-[11px] text-rose-200 leading-relaxed block">
+                {language === 'mr' ? imageScanError.marathiReason : imageScanError.reason}
+              </span>
+            </div>
+          </div>
+          <p className="text-[10px] text-rose-300/80 pt-1 border-t border-rose-800/60">
+            {language === 'mr'
+              ? 'केवळ रस्त्यावरील सार्वजनिक नागरी समस्यांचे (खड्डे, कचरा, गटारे, दिवे) फोटो स्वीकारले जातात. खाजगी घरे, वैयक्तिक वाद किंवा अश्लील फोटो पूर्णपणे प्रतिबंधित आहेत.'
+              : 'Only legitimate outdoor municipal issues (potholes, garbage, drainage, lighting) are allowed. Private homes, personal disputes, and vulgar content are strictly blocked.'}
+          </p>
+        </div>
+      )}
+
       {!photoPreviewUrl ? (
         <button
           type="button"
