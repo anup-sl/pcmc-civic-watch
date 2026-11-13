@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { 
   Camera, 
   MapPin, 
@@ -14,7 +14,6 @@ import {
   Plus,
   Edit2,
   Search,
-  ChevronRight,
   ShieldAlert,
   HelpCircle,
   Flag
@@ -24,8 +23,7 @@ import { CATEGORIES } from '../types';
 import type { Category, Hotspot } from '../types';
 import { submitCivicReport, supabase, haversineDistanceMeters } from '../supabase';
 import type { SubmitReportResult } from '../supabase';
-import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation, getSLAStatus } from '../utils/geo';
-import { getZoneForArea, getWardForArea } from '../utils/pcmcDirectory';
+import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation } from '../utils/geo';
 import { FlagModal } from './FlagModal';
 import { analyzeImageContent } from '../utils/contentModeration';
 import type { Language } from '../utils/i18n';
@@ -38,7 +36,7 @@ interface ReportTabProps {
   initialCoords?: { lat: number; lng: number } | null;
 }
 
-export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, initialCoords }: ReportTabProps) => {
+export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS[language];
 
@@ -64,7 +62,6 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   // Submission & Detection states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [nearbyHotspots, setNearbyHotspots] = useState<{ hotspot: Hotspot; distance: number }[]>([]);
-  const [allHotspots, setAllHotspots] = useState<Hotspot[]>([]);
   const [submissionResult, setSubmissionResult] = useState<SubmitReportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [contentCheckConfirmed, setContentCheckConfirmed] = useState<boolean>(true);
@@ -72,50 +69,6 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
   const [isScanningImage, setIsScanningImage] = useState<boolean>(false);
   const [imageScanError, setImageScanError] = useState<{ reason: string; marathiReason: string } | null>(null);
   const [isManualArea, setIsManualArea] = useState<boolean>(false);
-
-  // Fetch all hotspots to calculate ward-specific dashboard metrics
-  const fetchAllHotspots = async () => {
-    try {
-      const { data, error } = await supabase.from('hotspots').select('*');
-      if (!error && data) {
-        setAllHotspots(data as Hotspot[]);
-      }
-    } catch (e) {
-      console.warn('Error loading hotspots for ward summary:', e);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllHotspots();
-  }, []);
-
-  // Compute 1-line Ward Status Summary for the active locality
-  const wardSummary = useMemo(() => {
-    const zoneInfo = getZoneForArea(areaName, latitude, longitude);
-    const wardInfo = getWardForArea(areaName, latitude, longitude);
-
-    const inWard = allHotspots.filter(h => {
-      const hWard = getWardForArea(h.area_name || '', h.latitude, h.longitude);
-      return hWard.wardNo === wardInfo.wardNo;
-    });
-
-    const openCount = inWard.filter(h => h.status === 'OPEN' || h.status === 'CHRONIC_REOPENED').length;
-    const overdueCount = inWard.filter(h => {
-      if (h.status === 'RESOLVED') return false;
-      const sla = getSLAStatus(h.created_at, h.sla_hours, h.status, h.resolved_at);
-      return sla.isOverdue;
-    }).length;
-    const resolvedCount = inWard.filter(h => h.status === 'RESOLVED').length;
-
-    return {
-      zoneInfo,
-      wardInfo,
-      openCount,
-      overdueCount,
-      resolvedCount,
-      totalCount: inWard.length
-    };
-  }, [allHotspots, areaName, latitude, longitude]);
 
   // Quick Phrases
   const quickPhrasesByCategory: Record<Category, string[]> = {
@@ -342,7 +295,6 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       });
 
       setSubmissionResult(result);
-      fetchAllHotspots();
 
       confetti({
         particleCount: 80,
@@ -506,48 +458,7 @@ export const ReportTab = ({ language, onNavigateToMap, onNavigateToLeaderboard, 
       )}
 
       {/* ======================================================== */}
-      {/* 2. COMPACT WARD INCIDENT SUMMARY PILL                    */}
-      {/* ======================================================== */}
-      <div 
-        onClick={onNavigateToLeaderboard}
-        role={onNavigateToLeaderboard ? "button" : undefined}
-        title={onNavigateToLeaderboard ? (language === 'mr' ? 'विभागीय डॅशबोर्ड पाहण्यासाठी टॅप करा' : 'Tap to view full Ward Dashboard in Leaderboard') : undefined}
-        className={`flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs shadow-xs transition-all ${
-          onNavigateToLeaderboard ? 'hover:border-cyan-500/50 hover:bg-slate-900 cursor-pointer active:scale-[0.99]' : ''
-        }`}
-      >
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-extrabold text-[10px] text-cyan-400 uppercase tracking-wider bg-cyan-950/90 border border-cyan-800/80 px-1.5 py-0.5 rounded shrink-0">
-            {language === 'mr' ? `प्रभाग ${wardSummary.wardInfo.wardNo}` : `Ward ${wardSummary.wardInfo.wardNo}`}
-          </span>
-          <span className="text-slate-300 text-[11px] font-medium truncate">
-            {language === 'mr' ? wardSummary.wardInfo.marathiWardLabel : wardSummary.wardInfo.wardLabel} • {wardSummary.wardInfo.zone}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2.5 text-[11px] shrink-0 font-bold">
-          <span className="text-amber-400 flex items-center gap-1" title="Open Complaints">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-            <span>{wardSummary.openCount} {language === 'mr' ? 'प्रलंबित' : 'Open'}</span>
-          </span>
-          {wardSummary.overdueCount > 0 && (
-            <span className="text-rose-400 flex items-center gap-1" title="Overdue Complaints">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-              <span>{wardSummary.overdueCount} {language === 'mr' ? 'मुदत संपले' : 'Overdue'}</span>
-            </span>
-          )}
-          <span className="text-emerald-400 flex items-center gap-1" title="Resolved Complaints">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>{wardSummary.resolvedCount} {language === 'mr' ? 'निवारण' : 'Fixed'}</span>
-          </span>
-          {onNavigateToLeaderboard && (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-500 hover:text-cyan-400 shrink-0" />
-          )}
-        </div>
-      </div>
-
-      {/* ======================================================== */}
-      {/* 3. CAMERA ACTION: COMPACT SNAP CIVIC ISSUE BUTTON         */}
+      {/* 2. CAMERA ACTION: COMPACT SNAP CIVIC ISSUE BUTTON         */}
       {/* ======================================================== */}
       {isScanningImage && (
         <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-xs text-cyan-200 flex items-center justify-center gap-2 animate-pulse">
