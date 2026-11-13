@@ -9,7 +9,7 @@ import { ModeratorPortal } from './components/ModeratorPortal';
 import { InstallPrompt } from './components/InstallPrompt';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
-import { PhoneCall, MessageSquareHeart } from 'lucide-react';
+import { PhoneCall, MessageSquareHeart, ShieldAlert } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('report');
@@ -124,6 +124,17 @@ export function App() {
             >
               <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
               <span className="hidden sm:inline text-[11px]">Help</span>
+            </button>
+
+            {/* Moderator Portal Button */}
+            <button
+              type="button"
+              onClick={() => setShowModeratorPortal(true)}
+              className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
+              title="Moderator Access (PIN Required)"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline text-[11px]">Mod</span>
             </button>
 
             {/* Bilingual EN | मराठी Toggle Switch */}

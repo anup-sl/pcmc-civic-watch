@@ -632,6 +632,16 @@ export const LeaderboardTab = ({ language }: LeaderboardTabProps) => {
             ? 'नागरी समस्यांचे जलद निवारण व प्रभागनिहाय पारदर्शकता वाढवण्यासाठी नागरिकांनी नागरिकांसाठी तयार केलेले व्यासपीठ.'
             : 'Built by citizens for transparent municipal issue tracking & community verification.'}
         </p>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open_moderator_portal'))}
+            className="text-[11px] text-slate-500 hover:text-cyan-400 font-semibold inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 transition-colors"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+            <span>Moderator Desk (PIN Protected)</span>
+          </button>
+        </div>
       </footer>
 
       {/* Directory Modal */}
