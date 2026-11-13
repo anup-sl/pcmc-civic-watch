@@ -1,5 +1,7 @@
-import { X, Phone, Mail, ExternalLink, ShieldCheck, ShieldAlert, UserCheck } from 'lucide-react';
-import { ZONAL_OFFICES, PCMC_SARATHI } from '../utils/pcmcDirectory';
+import { useState } from 'react';
+import { X, Phone, Mail, ExternalLink, ShieldCheck, ShieldAlert, UserCheck, MapPin, Search, Building2 } from 'lucide-react';
+import { PCMC_SARATHI } from '../utils/pcmcDirectory';
+import { OFFICIAL_PCMC_ZONES, OFFICIAL_PCMC_WARDS } from '../utils/pcmcOfficialWardZoneData';
 import { PCMC_ESCALATION_CONFIG } from '../config/escalationConfig';
 import { CorporatorSection } from './CorporatorSection';
 import type { Language } from '../utils/i18n';
@@ -15,6 +17,22 @@ export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: Direct
   const t = TRANSLATIONS[language];
   const leadership = PCMC_ESCALATION_CONFIG.escalation_leadership;
   const categories = PCMC_ESCALATION_CONFIG.categories;
+  const [wardSearchQuery, setWardSearchQuery] = useState('');
+  const [showWardBoundaryExplorer, setShowWardBoundaryExplorer] = useState(false);
+
+  const filteredWards = OFFICIAL_PCMC_WARDS.filter(w => {
+    if (!wardSearchQuery.trim()) return true;
+    const q = wardSearchQuery.toLowerCase();
+    return (
+      w.badge.toLowerCase().includes(q) ||
+      String(w.wardNo).includes(q) ||
+      w.locality.toLowerCase().includes(q) ||
+      w.marathiLocality.toLowerCase().includes(q) ||
+      w.includedSocietiesAndAreas.toLowerCase().includes(q) ||
+      w.zoneName.toLowerCase().includes(q) ||
+      w.fortName.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="fixed inset-0 z-[1200] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
@@ -152,34 +170,62 @@ export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: Direct
           </div>
         </div>
 
-        {/* All 8 PCMC Zonal Offices (Zone A to H) */}
+        {/* All 10 PCMC Zonal Field Offices (Zone A to L) */}
         <div className="space-y-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1">
-            {t.zonalOffices}
-          </span>
-          <div className="space-y-2">
-            {ZONAL_OFFICES.map((z) => (
-              <div key={z.zone} className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
-                <div className="flex justify-between items-start">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {language === 'mr' ? '१० क्षेत्रीय कार्यालये (किल्ले विभाग)' : '10 PCMC Zonal Field Offices (Fort Divisions)'}
+            </span>
+            <a
+              href="https://www.pcmcindia.gov.in/ward_info"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-cyan-400 hover:underline flex items-center gap-0.5"
+            >
+              <span>pcmcindia.gov.in/ward_info</span>
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          </div>
+
+          <div className="space-y-2.5">
+            {OFFICIAL_PCMC_ZONES.map((z) => (
+              <div key={z.zoneKey} className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
+                <div className="flex justify-between items-start gap-2">
                   <div>
-                    <span className="text-cyan-400 font-extrabold text-[11px] block">
-                      {z.zone} ({language === 'mr' ? z.marathiZone : z.officer})
-                    </span>
-                    <p className="text-[11px] text-slate-300 mt-0.5">{z.coverage}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-cyan-400 font-extrabold text-[12px]">
+                        {z.zoneName} ({language === 'mr' ? z.marathiName : z.marathiName})
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-semibold text-[10px]">
+                        🚩 {z.fortName}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {z.wardNumbers.map(n => `W-${n}`).join(', ')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                      {language === 'mr' ? z.coverageMarathi : z.coverageAreas}
+                    </p>
+                    <div className="flex items-start gap-1 text-[10px] text-slate-400 mt-1">
+                      <MapPin className="w-3 h-3 text-slate-500 shrink-0 mt-0.5" />
+                      <span>{z.address}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <a
-                    href={`tel:${z.phone}`}
-                    className="p-2 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-200 flex items-center justify-center gap-1 font-mono text-[11px]"
-                  >
-                    <Phone className="w-3 h-3 text-cyan-400" />
-                    <span>{z.phoneFormatted}</span>
-                  </a>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                  {z.phone && (
+                    <a
+                      href={`tel:${z.phone.replace(/[^0-9]/g, '')}`}
+                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-200 flex items-center justify-center gap-1.5 font-mono text-[11px]"
+                    >
+                      <Phone className="w-3 h-3 text-cyan-400" />
+                      <span>{z.phoneFormatted}</span>
+                    </a>
+                  )}
                   <a
                     href={`mailto:${z.email}`}
-                    className="p-2 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-cyan-300 flex items-center justify-center gap-1 text-[11px] truncate"
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-cyan-300 flex items-center justify-center gap-1.5 text-[11px] truncate"
                   >
                     <Mail className="w-3 h-3 text-cyan-400 shrink-0" />
                     <span className="truncate">{z.email}</span>
@@ -188,6 +234,74 @@ export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: Direct
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Official 32-Ward Boundaries & Included Societies Directory */}
+        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-bold text-white">
+                {language === 'mr' ? '३२ प्रभाग व समाविष्ट भाग (Ward Boundaries)' : '32 Ward Boundaries & Societies Directory'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowWardBoundaryExplorer(!showWardBoundaryExplorer)}
+              className="text-[11px] font-semibold text-cyan-400 hover:underline"
+            >
+              {showWardBoundaryExplorer ? (language === 'mr' ? 'लपवा' : 'Hide') : (language === 'mr' ? 'पहा (३२ प्रभाग)' : 'Explore (32 Wards)')}
+            </button>
+          </div>
+
+          <p className="text-[11px] text-slate-400">
+            {language === 'mr'
+              ? 'अधिकृत pcmcindia.gov.in/ward_info नुसार प्रत्येक प्रभागातील समाविष्ट भाग, सोसायट्या आणि परिसर.'
+              : 'Official breakdown of covered societies, gaothans, and colonies per ward from pcmcindia.gov.in/ward_info.'}
+          </p>
+
+          {showWardBoundaryExplorer && (
+            <div className="space-y-2 pt-1 animate-in fade-in duration-150">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  value={wardSearchQuery}
+                  onChange={(e) => setWardSearchQuery(e.target.value)}
+                  placeholder={language === 'mr' ? 'प्रभाग किंवा परिसर शोधा (उदा. किवळे, रावेत, वाकड, मोशी...)' : 'Search ward or locality (e.g. Kiwale, Ravet, Wakad, Moshi...)'}
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="max-h-72 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                {filteredWards.map((w) => (
+                  <div key={w.wardNo} className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold text-[10px] border border-cyan-800/60">
+                          {w.badge}
+                        </span>
+                        <span className="font-bold text-white text-[11px]">
+                          {language === 'mr' ? w.marathiLocality : w.locality}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                        {w.zoneName} • {w.fortName}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {w.includedSocietiesAndAreas}
+                    </p>
+                  </div>
+                ))}
+                {filteredWards.length === 0 && (
+                  <div className="p-4 text-center text-xs text-slate-500">
+                    {language === 'mr' ? 'कोणताही प्रभाग सापडला नाही' : 'No matching ward found for this query'}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Working Official Municipal Web Portals */}

@@ -3,6 +3,8 @@ import { estimatePCMCArea } from './geo';
 export interface ZonalOffice {
   zone: string;
   marathiZone: string;
+  fort?: string;
+  address?: string;
   wardNumbers: string;
   coverage: string;
   officer: string;
@@ -14,83 +16,123 @@ export interface ZonalOffice {
 export const ZONAL_OFFICES: ZonalOffice[] = [
   {
     zone: 'Zone A',
-    marathiZone: 'क्षेत्रीय कार्यालय अ',
-    wardNumbers: 'Wards 10, 14, 15, 16, 19',
-    coverage: 'Nigdi, Pradhikaran, Akurdi, Kiwale, Ravet, Chinchwad Station (Wards 10, 14, 15, 16, 19)',
+    marathiZone: 'अ क्षेत्रीय कार्यालय (राजगड)',
+    fort: 'Rajgad (राजगड)',
+    address: 'संत ज्ञानेश्वर चौक, निगडी प्राधिकरण, निगडी ४११०४४',
+    wardNumbers: 'Wards 13, 14, 15',
+    coverage: 'Nigdi Gaothan, Pradhikaran, Akurdi, Chinchwad Station, Mohannagar, Kalbhornagar (Wards 13, 14, 15)',
     officer: 'Assistant Commissioner, Zone A',
-    email: 'zonea@pcmcindia.gov.in',
-    phone: '02027653168',
-    phoneFormatted: '020-27653168'
+    email: 'azone@pcmcindia.gov.in',
+    phone: '02027646621',
+    phoneFormatted: '+91-020-27646621'
   },
   {
     zone: 'Zone B',
-    marathiZone: 'क्षेत्रीय कार्यालय ब',
-    wardNumbers: 'Wards 17, 18, 22, 23, 28',
-    coverage: 'Chinchwadgaon, Thergaon, Kalewadi, Rahatani (Wards 17, 18, 22, 23, 28)',
+    marathiZone: 'ब क्षेत्रीय कार्यालय (सिंहगड)',
+    fort: 'Sinhagad (सिंहगड)',
+    address: 'लिंक रोड, एल प्रो कंपनी आवार, चिंचवडगाव, पुणे ४११०३३',
+    wardNumbers: 'Wards 17, 18, 19',
+    coverage: 'Chinchwadgaon, Dalvinagar, Walhekarwadi Gaothan, SKF Colony, Pimpri Camp, Udyognagar (Wards 17, 18, 19)',
     officer: 'Assistant Commissioner, Zone B',
-    email: 'zoneb@pcmcindia.gov.in',
-    phone: '02027352244',
-    phoneFormatted: '020-27352244'
+    email: 'bzone@pcmcindia.gov.in',
+    phone: '02027350153',
+    phoneFormatted: '+91-020-27350153'
   },
   {
     zone: 'Zone C',
-    marathiZone: 'क्षेत्रीय कार्यालय क',
-    wardNumbers: 'Wards 02, 05, 06, 08',
-    coverage: 'Bhosari, Indrayani Nagar, Moshi, Charholi (Wards 02, 05, 06, 08)',
+    marathiZone: 'क क्षेत्रीय कार्यालय (विजयदुर्ग)',
+    fort: 'Vijaydurg (विजयदुर्ग)',
+    address: 'हॉकी स्टेडियम शेजारी, नेहरूनगर, भोसरी, पुणे ४११०२६',
+    wardNumbers: 'Wards 02, 09, 10',
+    coverage: 'Chikhali East, Jadhavwadi, Borhadewadi, Nehrunagar, Ajmera, Masulkar Colony, Sambhajinagar, Shahunagar (Wards 02, 09, 10)',
     officer: 'Assistant Commissioner, Zone C',
-    email: 'cward@pcmcindia.gov.in',
-    phone: '02027121155',
-    phoneFormatted: '020-27121155'
+    email: 'czone@pcmcindia.gov.in',
+    phone: '02027122969',
+    phoneFormatted: '+91-020-27122969'
   },
   {
     zone: 'Zone D',
-    marathiZone: 'क्षेत्रीय कार्यालय ड',
-    wardNumbers: 'Wards 25, 26, 28, 29',
-    coverage: 'Wakad, Tathawade, Punawale, Pimple Saudagar (Wards 25, 26, 28, 29)',
+    marathiZone: 'ड क्षेत्रीय कार्यालय (देवगिरी)',
+    fort: 'Devgiri (देवगिरी)',
+    address: 'औंध-रावेत रोड, रहाटणी, पुणे ४११०१७',
+    wardNumbers: 'Wards 21, 27, 28, 29',
+    coverage: 'Pimprigaon, Tapkirnagar, Rahatani, Pimple Saudagar (Kokane Chowk, Shivar Garden), Kalpataru Estate, Pimple Gurav (Wards 21, 27, 28, 29)',
     officer: 'Assistant Commissioner, Zone D',
-    email: 'a.yele@pcmcindia.gov.in',
-    phone: '02027276500',
-    phoneFormatted: '020-27276500'
+    email: 'dzone@pcmcindia.gov.in',
+    phone: '02027277898',
+    phoneFormatted: '+91-020-27277898'
   },
   {
     zone: 'Zone E',
-    marathiZone: 'क्षेत्रीय कार्यालय इ',
-    wardNumbers: 'Wards 03, 04, 07',
-    coverage: 'Dighi, Bopkhel, Bhosari East (Wards 03, 04, 07)',
+    marathiZone: 'इ क्षेत्रीय कार्यालय (शिवनेरी)',
+    fort: 'Shivneri (शिवनेरी)',
+    address: 'पांजरपोळ संस्थे समोर, नाशिक रोड, भोसरी, पुणे ४११०३९',
+    wardNumbers: 'Wards 03, 04, 05',
+    coverage: 'Moshi Gaothan, Charholi, Dudulgaon, Dighi, Bopkhel, VSNL Road, Ramnagar, Gawlinagar (Wards 03, 04, 05)',
     officer: 'Assistant Commissioner, Zone E',
-    email: 'ah.gaikwad@pcmcindia.gov.in',
-    phone: '02027150444',
-    phoneFormatted: '020-27150444'
+    email: 'ezone@pcmcindia.gov.in',
+    phone: '02027230412',
+    phoneFormatted: '+91-020-27230412'
   },
   {
     zone: 'Zone F',
-    marathiZone: 'क्षेत्रीय कार्यालय फ',
-    wardNumbers: 'Wards 01, 11, 12, 13',
-    coverage: 'Chikhali, Talawade, Rupeenagar, Nigdi East (Wards 01, 11, 12, 13)',
+    marathiZone: 'फ क्षेत्रीय कार्यालय (तोरणा)',
+    fort: 'Torna (तोरणा)',
+    address: 'नवनगर विकास प्राधिकरण कार्यालयाची जुनी इमारत, लोकमान्य टिळक चौक, निगडी ४११०४४',
+    wardNumbers: 'Wards 01, 11, 12',
+    coverage: 'Chikhali Gaothan, Kudalwadi, Krishnanagar, Purnanagar, Talawade MIDC IT Park, Rupeenagar, Triveninagar (Wards 01, 11, 12)',
     officer: 'Assistant Commissioner, Zone F',
-    email: 'zonef@pcmcindia.gov.in',
-    phone: '02027662100',
-    phoneFormatted: '020-27662100'
+    email: 'fzone@pcmcindia.gov.in',
+    phone: '02027230410',
+    phoneFormatted: '+91-020-27230410'
   },
   {
     zone: 'Zone G',
-    marathiZone: 'क्षेत्रीय कार्यालय ग',
-    wardNumbers: 'Wards 09, 20, 21',
-    coverage: 'Pimpri Camp, Nehrunagar, Vallabhnagar, Morwadi (Wards 09, 20, 21)',
+    marathiZone: 'ग क्षेत्रीय कार्यालय (पुरंदर)',
+    fort: 'Purandar (पुरंदर)',
+    address: 'तिसरा मजला, नविन प्रशासकिय इमारत, दिलिप वेंगसरकर क्रिकेट अकॅडमी मागे, थेरगाव, पुणे ४११०३३',
+    wardNumbers: 'Wards 22, 23, 24',
+    coverage: 'Kalewadi, Vijayanagar, Thergaon Gaothan, Dange Chowk, Wakad (Aditya Birla Hospital, Datta Mandir, Greens) (Wards 22, 23, 24)',
     officer: 'Assistant Commissioner, Zone G',
-    email: 'zoneg@pcmcindia.gov.in',
-    phone: '02027423300',
-    phoneFormatted: '020-27423300'
+    email: 'gzone@pcmcindia.gov.in',
+    phone: '7887879555',
+    phoneFormatted: '7887879555'
   },
   {
     zone: 'Zone H',
-    marathiZone: 'क्षेत्रीय कार्यालय ह',
-    wardNumbers: 'Wards 24, 27, 30, 31, 32',
-    coverage: 'Sangvi, Dapodi, Kasarwadi, Pimple Gurav (Wards 24, 27, 30, 31, 32)',
+    marathiZone: 'ह क्षेत्रीय कार्यालय (प्रतापगड)',
+    fort: 'Pratapgad (प्रतापगड)',
+    address: 'कासारवाडी येथील महिला आय.टी.आय इमारत, कासारवाडी, पुणे',
+    wardNumbers: 'Wards 30, 31, 32',
+    coverage: 'Kasarwadi, Fugewadi, Dapodi, Sangvi (Old & New), Sangamnagar, PWD Colony, Sairaj Residency (Wards 30, 31, 32)',
     officer: 'Assistant Commissioner, Zone H',
-    email: 'zoneh@pcmcindia.gov.in',
-    phone: '02027145522',
-    phoneFormatted: '020-27145522'
+    email: 'hzone@pcmcindia.gov.in',
+    phone: '02027142503',
+    phoneFormatted: '020-27142503 / 04'
+  },
+  {
+    zone: 'Zone J',
+    marathiZone: 'ज क्षेत्रीय कार्यालय (रायगड)',
+    fort: 'Raigad (रायगड)',
+    address: 'स. नं. २७, मनपा वाहनतळ इमारत, ताथवडे, पुणे ४११०३३',
+    wardNumbers: 'Wards 16, 25, 26',
+    coverage: 'Kiwale (Mukai Chowk), Ravet (Basket Bridge, BRT), Mamurdi, Vikas Nagar, Punawale, Tathawade (JSPM), Pimple Nilakh (Vishal Nagar, Kaspatewasti) (Wards 16, 25, 26)',
+    officer: 'Assistant Commissioner, Zone J',
+    email: 'jzone@pcmcindia.gov.in',
+    phone: '8888006666',
+    phoneFormatted: 'PCMC Sarathi: 8888006666'
+  },
+  {
+    zone: 'Zone L',
+    marathiZone: 'ल क्षेत्रीय कार्यालय (लोहगड)',
+    fort: 'Lohagad (लोहगड)',
+    address: 'म्हाडा, प्लॉट नं. E-२, संत तुकाराम नगर, पोलिस स्टेशन समोर, पिंपरी, पुणे ४११०१८',
+    wardNumbers: 'Wards 06, 07, 08, 20',
+    coverage: 'Bhosari Gaothan, Landewadi, Chakrapani, Indrayaninagar, MIDC Bhosari, Sant Tukaram Nagar, Vallabhnagar, HA Colony, CIRT (Wards 06, 07, 08, 20)',
+    officer: 'Assistant Commissioner, Zone L',
+    email: 'lzone@pcmcindia.gov.in',
+    phone: '8888006666',
+    phoneFormatted: 'PCMC Sarathi: 8888006666'
   }
 ];
 
@@ -164,7 +206,10 @@ export function getZoneForArea(areaName: string, lat?: number, lon?: number): Zo
   // Fallback: if coordinates exist, resolve ward's zone
   if (lat != null && lon != null) {
     const ward = getWardForArea(areaName, lat, lon);
-    const matched = ZONAL_OFFICES.find(z => z.zone.toLowerCase() === ward.zone.toLowerCase());
+    const matched = ZONAL_OFFICES.find(z => 
+      z.zone.toLowerCase() === ward.zone.toLowerCase() || 
+      z.marathiZone.toLowerCase().includes(ward.zone.toLowerCase())
+    );
     if (matched) return matched;
   }
 
