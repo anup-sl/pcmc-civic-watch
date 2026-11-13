@@ -346,73 +346,78 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       />
 
       {/* ======================================================== */}
-      {/* 1. LOCALITY & LIVE GPS BAR (2-Line Responsive Layout)     */}
+      {/* 1. LOCALITY & LIVE GPS BAR (Responsive Layout)          */}
       {/* ======================================================== */}
       <div className="space-y-1.5 px-1">
-        {/* LINE 1: Location Only */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-          {isEditingArea ? (
-            <div className="flex items-center gap-1 flex-1 min-w-0">
-              <input
-                type="text"
-                value={areaName}
-                onChange={(e) => setAreaName(e.target.value)}
-                placeholder={language === 'mr' ? 'रस्ता किंवा खूण टाईप करा...' : 'Type street / landmark...'}
-                className="flex-1 bg-slate-900 border border-cyan-500 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditingArea(false);
-                  setIsManualArea(true);
-                }}
-                className="px-2.5 py-0.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px] shrink-0"
-              >
-                {language === 'mr' ? 'जतन करा' : 'Save'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <span className="font-semibold text-slate-100 text-xs sm:text-sm break-words leading-snug">
-                {isGeocoding ? (language === 'mr' ? 'अचूक पत्ता शोधत आहे...' : 'Detecting street...') : areaName}
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsEditingArea(true)}
-                className="p-1 rounded text-slate-400 hover:text-cyan-400 shrink-0"
-                title={language === 'mr' ? 'पत्ता संपादित करा' : 'Edit street / landmark'}
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+        {/* LINE 1: Location Name + Auto-locate GPS + Switch Ward */}
+        <div className="flex items-center justify-between gap-1.5 flex-wrap min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+            {isEditingArea ? (
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={areaName}
+                  onChange={(e) => setAreaName(e.target.value)}
+                  placeholder={language === 'mr' ? 'रस्ता किंवा खूण टाईप करा...' : 'Type street / landmark...'}
+                  className="flex-1 bg-slate-900 border border-cyan-500 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingArea(false);
+                    setIsManualArea(true);
+                  }}
+                  className="px-2.5 py-0.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-[11px] shrink-0"
+                >
+                  {language === 'mr' ? 'जतन करा' : 'Save'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-semibold text-slate-100 text-xs sm:text-sm truncate">
+                  {isGeocoding ? (language === 'mr' ? 'अचूक पत्ता शोधत आहे...' : 'Detecting street...') : areaName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingArea(true)}
+                  className="p-1 rounded text-slate-400 hover:text-cyan-400 shrink-0"
+                  title={language === 'mr' ? 'पत्ता संपादित करा' : 'Edit street / landmark'}
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* GPS Auto-locate and Switch Ward on line 1 */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setIsManualArea(false);
+                grabLiveGPS(true);
+              }}
+              disabled={isLocating}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0"
+            >
+              <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+              <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowLocationPicker(!showLocationPicker)}
+              className="text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-1 shrink-0"
+            >
+              {showLocationPicker ? t.closeWards : t.switchWard}
+            </button>
+          </div>
         </div>
 
-        {/* LINE 2: GPS, Switch Ward, Corporators & Zone Office Info */}
+        {/* LINE 2: Corporators & Zone Office Info */}
         <div className="flex items-center gap-1.5 flex-wrap text-xs pt-0.5">
-          <button
-            type="button"
-            onClick={() => {
-              setIsManualArea(false);
-              grabLiveGPS(true);
-            }}
-            disabled={isLocating}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0"
-          >
-            <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-            <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowLocationPicker(!showLocationPicker)}
-            className="text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-1 shrink-0"
-          >
-            {showLocationPicker ? t.closeWards : t.switchWard}
-          </button>
-
           <button
             type="button"
             onClick={() => setShowCorporatorsModal(true)}

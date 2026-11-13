@@ -56,7 +56,8 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Open Waste Burning',
       'Dead Animal / Carcass',
       'Uncleaned Public Urinal',
-      'Garden / Tree Waste'
+      'Garden / Tree Waste',
+      'Other'
     ],
     description: 'Waste piling or illegal disposal'
   },
@@ -73,7 +74,8 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Missing / Broken Manhole Lid',
       'Stagnant Water / Mosquitoes',
       'Drinking Water Pipeline Leak',
-      'Open Drainage Pit Hazard'
+      'Open Drainage Pit Hazard',
+      'Other'
     ],
     description: 'Blocked gutter or wastewater backup'
   },
@@ -90,7 +92,8 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Loose Gravel / Asphalt Washed Out',
       'Multiple Consecutive Potholes',
       'Broken Paver Blocks',
-      'Road Surface Subsidence'
+      'Road Surface Subsidence',
+      'Other'
     ],
     description: 'Road damage affecting vehicle safety'
   },
@@ -108,7 +111,8 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Exposed / Hanging Live Wires',
       'Damaged / Tilted Electric Pole',
       'High Mast Light Failure',
-      'Daytime Burning Light'
+      'Daytime Burning Light',
+      'Other'
     ],
     description: 'Non-functional street light or hazard'
   },
@@ -126,7 +130,8 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Vehicles Occupying Walkway',
       'Construction Material on Road',
       'Nullah / Open Space Encroachment',
-      'Unauthorised Parking / Stand'
+      'Unauthorised Parking / Stand',
+      'Other'
     ],
     description: 'Footpath blocked or illegal public land occupation'
   },
@@ -145,7 +150,8 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Noise / Loudspeaker Nuisance',
       'Stray Animals / Cattle Hazard',
       'Public Garden / Park Maintenance',
-      'General Civic Grievance / Other'
+      'General Civic Grievance / Other',
+      'Other'
     ],
     description: 'Sarathi portal, e-governance, parks, or unlisted issue'
   }

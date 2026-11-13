@@ -13,7 +13,8 @@ export const SUB_TAG_TRANSLATIONS: Record<Category, SubTagTranslation[]> = {
     { en: 'Loose Gravel / Asphalt Washed Out', mr: 'उखडलेला डांबर / पसरलेली खडी' },
     { en: 'Multiple Consecutive Potholes', mr: 'सलग अनेक खड्डे' },
     { en: 'Broken Paver Blocks', mr: 'तुटलेले पेव्हर ब्लॉक्स' },
-    { en: 'Road Surface Subsidence', mr: 'रस्ता खचणे / भेगा पडणे' }
+    { en: 'Road Surface Subsidence', mr: 'रस्ता खचणे / भेगा पडणे' },
+    { en: 'Other', mr: 'इतर' }
   ],
   Garbage: [
     { en: 'Overflowing Bin', mr: 'ओव्हरफ्लो कचरा कुंडी' },
@@ -22,7 +23,8 @@ export const SUB_TAG_TRANSLATIONS: Record<Category, SubTagTranslation[]> = {
     { en: 'Open Waste Burning', mr: 'कचरा उघड्यावर जाळणे (धूर)' },
     { en: 'Dead Animal / Carcass', mr: 'मृत प्राणी विल्हेवाट' },
     { en: 'Uncleaned Public Urinal', mr: 'अस्वच्छ सार्वजनिक शौचालय' },
-    { en: 'Garden / Tree Waste', mr: 'पालापाचोळा / छाटलेल्या फांद्या' }
+    { en: 'Garden / Tree Waste', mr: 'पालापाचोळा / छाटलेल्या फांद्या' },
+    { en: 'Other', mr: 'इतर' }
   ],
   Drainage: [
     { en: 'Clogged Stormwater Drain', mr: 'पावसाळी गटार तुंबणे' },
@@ -30,7 +32,8 @@ export const SUB_TAG_TRANSLATIONS: Record<Category, SubTagTranslation[]> = {
     { en: 'Missing / Broken Manhole Lid', mr: 'मॅनहोलचे तुटलेले / गायब झाकण' },
     { en: 'Stagnant Water / Mosquitoes', mr: 'साचलेले दुर्गंधीयुक्त पाणी / डास' },
     { en: 'Drinking Water Pipeline Leak', mr: 'पिण्याच्या पाण्याची पाईपलाईन गळती' },
-    { en: 'Open Drainage Pit Hazard', mr: 'उघडा ड्रेनेज खड्डा धोका' }
+    { en: 'Open Drainage Pit Hazard', mr: 'उघडा ड्रेनेज खड्डा धोका' },
+    { en: 'Other', mr: 'इतर' }
   ],
   Streetlight: [
     { en: 'Completely Dark Stretch', mr: 'संपूर्ण रस्त्यावर अंधार' },
@@ -39,19 +42,22 @@ export const SUB_TAG_TRANSLATIONS: Record<Category, SubTagTranslation[]> = {
     { en: 'Exposed / Hanging Live Wires', mr: 'उघड्या / लटकणाऱ्या विजेच्या तारा' },
     { en: 'Damaged / Tilted Electric Pole', mr: 'वाकलेला / धोकादायक विजेचा खांब' },
     { en: 'High Mast Light Failure', mr: 'हायमास्ट दिवा बंद' },
-    { en: 'Daytime Burning Light', mr: 'दिवसा चालू असणारा पथदिवा' }
+    { en: 'Daytime Burning Light', mr: 'दिवसा चालू असणारा पथदिवा' },
+    { en: 'Other', mr: 'इतर' }
   ],
   Encroachment: [
     { en: 'Footpath Blocked by Illegal Stalls', mr: 'पदपथावरील अनधिकृत हातगाड्या / स्टॉल्स' },
     { en: 'Unauthorized Shed on Public Walkway', mr: 'पादचारी मार्गावरील अनधिकृत पत्र्याचे शेड' },
     { en: 'Banners & Boards Blocking Visibility', mr: 'वाहतुकीस अडथळा आणणारे बॅनर्स / फलक' },
-    { en: 'Vehicles & Debris Blocking Access', mr: 'पादचाऱ्यांचा रस्ता अडवणारी वाहने व साहित्य' }
+    { en: 'Vehicles & Debris Blocking Access', mr: 'पादचाऱ्यांचा रस्ता अडवणारी वाहने व साहित्य' },
+    { en: 'Other', mr: 'इतर' }
   ],
   Other: [
     { en: 'PCMC Sarathi Grievance Portal Issue', mr: 'सारथी पोर्टलवर तक्रार नोंदणी अडचण' },
     { en: 'Property Tax / Water Bill Receipt Issue', mr: 'कर / पाणीपट्टी पावती न मिळणे' },
     { en: 'Broken Public Park Equipment', mr: 'सार्वजनिक उद्यानातील तुटलेली खेळणी' },
-    { en: 'Noise Pollution in Residential Area', mr: 'रहिवासी भागातील तीव्र ध्वनी प्रदूषण' }
+    { en: 'Noise Pollution in Residential Area', mr: 'रहिवासी भागातील तीव्र ध्वनी प्रदूषण' },
+    { en: 'Other', mr: 'इतर' }
   ]
 };
 

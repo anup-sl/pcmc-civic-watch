@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, ExternalLink, Users, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Phone, ExternalLink, Users, ChevronDown, ChevronUp, MessageCircle, MessageSquare } from 'lucide-react';
 import { getCorporatorsForWard } from '../utils/pcmcCorporators';
 import type { Language } from '../utils/i18n';
 
@@ -146,7 +146,7 @@ export const CorporatorSection = ({
                     <span className="font-mono text-[11px] text-slate-300 font-semibold tracking-wide">
                       {corp.phone}
                     </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                       {/* WhatsApp Button */}
                       <a
                         href={`https://wa.me/91${corp.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
@@ -161,6 +161,19 @@ export const CorporatorSection = ({
                       >
                         <MessageCircle className="w-3 h-3" />
                         <span>{language === 'mr' ? 'व्हॉट्सॲप' : 'WhatsApp'}</span>
+                      </a>
+                      {/* SMS Button */}
+                      <a
+                        href={`sms:${corp.phone.replace(/[^0-9]/g, '')}?&body=${encodeURIComponent(
+                          language === 'mr'
+                            ? `PCMC नागरी तक्रार:\nनमस्कार नगरसेवक महोदय (प्रभाग ${currentWardNo}), मी आपल्या प्रभागातील रहिवासी असून नागरी समस्येकडे लक्ष वेधत आहे. कृपया पाहणी करावी.`
+                            : `PCMC Civic Grievance:\nRespected Corporator (Ward ${currentWardNo}), I am a resident of your ward contacting you regarding a civic grievance. Kindly inspect.`
+                        )}`}
+                        className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-bold text-[11px] inline-flex items-center gap-1 transition-all active:scale-95"
+                        title={language === 'mr' ? 'एसएमएस पाठवा' : 'Send SMS'}
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        <span>{language === 'mr' ? 'SMS' : 'SMS'}</span>
                       </a>
                       {/* Call Button */}
                       <a

@@ -44,16 +44,29 @@ export const FeedbackModal = ({ language, onClose }: FeedbackModalProps) => {
     if (!message.trim()) return;
 
     setIsSubmitting(true);
+    const feedbackRecord = {
+      id: 'fb-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+      feedback_type: feedbackType,
+      rating,
+      message: message.trim(),
+      contact_name: contactName.trim() || null,
+      contact_email: contactEmail.trim() || null,
+      user_agent: navigator.userAgent,
+      created_at: new Date().toISOString()
+    };
+
+    // Cache locally so moderator desk always shows it even without network / remote table
+    try {
+      const stored = JSON.parse(localStorage.getItem('pcmc_submitted_feedbacks') || '[]');
+      stored.unshift(feedbackRecord);
+      localStorage.setItem('pcmc_submitted_feedbacks', JSON.stringify(stored.slice(0, 100)));
+    } catch {
+      // ignore
+    }
+
     try {
       // Try to log into Supabase if feedback table exists, otherwise continue gracefully
-      await supabase.from('feedback').insert({
-        feedback_type: feedbackType,
-        rating,
-        message: message.trim(),
-        contact_name: contactName.trim() || null,
-        contact_email: contactEmail.trim() || null,
-        user_agent: navigator.userAgent
-      }).select();
+      await supabase.from('feedback').insert(feedbackRecord).select();
     } catch (err) {
       console.warn('Feedback save note (fallback active):', err);
     } finally {

@@ -9,7 +9,11 @@ import {
   Eye, 
   MapPin, 
   Calendar, 
-  ShieldCheck
+  ShieldCheck,
+  MessageSquareHeart,
+  Star,
+  User,
+  Mail
 } from 'lucide-react';
 import { 
   fetchModerationQueue, 
@@ -21,6 +25,17 @@ import {
 import type { ModerationQueueItem } from '../supabase';
 import type { Hotspot } from '../types';
 import type { Language } from '../utils/i18n';
+
+export interface FeedbackItem {
+  id: string;
+  feedback_type: 'SUGGESTION' | 'BUG' | 'UI' | 'PERFORMANCE';
+  rating: number;
+  message: string;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+}
 
 interface ModeratorPortalProps {
   language: Language;
@@ -34,9 +49,10 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'queue' | 'hotspots'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'hotspots' | 'feedback'>('queue');
   const [queue, setQueue] = useState<ModerationQueueItem[]>([]);
   const [allHotspots, setAllHotspots] = useState<Hotspot[]>([]);
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -68,11 +84,63 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
 
       const { data: hData } = await supabase.from('hotspots').select('*').order('created_at', { ascending: false });
       if (hData) setAllHotspots(hData as Hotspot[]);
+
+      // Load user feedback from Supabase + localStorage cache
+      try {
+        const { data: fbData } = await supabase
+          .from('feedback')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        let localFb: FeedbackItem[] = [];
+        try {
+          localFb = JSON.parse(localStorage.getItem('pcmc_submitted_feedbacks') || '[]');
+        } catch {
+          // ignore
+        }
+
+        const combined: FeedbackItem[] = [...((fbData as FeedbackItem[]) || [])];
+        localFb.forEach((item) => {
+          if (!combined.some((c) => c.id === item.id || (c.message === item.message && Math.abs(new Date(c.created_at).getTime() - new Date(item.created_at).getTime()) < 10000))) {
+            combined.push(item);
+          }
+        });
+        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setFeedbacks(combined);
+      } catch (fbErr) {
+        console.warn('Feedback load note:', fbErr);
+        try {
+          const localFb = JSON.parse(localStorage.getItem('pcmc_submitted_feedbacks') || '[]');
+          setFeedbacks(localFb);
+        } catch {
+          setFeedbacks([]);
+        }
+      }
     } catch (e) {
       console.warn('Error loading moderation data:', e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteFeedback = async (id: string) => {
+    if (!window.confirm('Delete this citizen feedback?')) return;
+    setActionInProgress(id);
+    try {
+      await supabase.from('feedback').delete().eq('id', id);
+    } catch {
+      // ignore
+    }
+    try {
+      const localFb = JSON.parse(localStorage.getItem('pcmc_submitted_feedbacks') || '[]');
+      const filtered = localFb.filter((f: any) => f.id !== id);
+      localStorage.setItem('pcmc_submitted_feedbacks', JSON.stringify(filtered));
+    } catch {
+      // ignore
+    }
+    setFeedbacks(prev => prev.filter(f => f.id !== id));
+    showToast('Feedback removed from moderator desk.');
+    setActionInProgress(null);
   };
 
   useEffect(() => {
@@ -261,6 +329,22 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
                   {allHotspots.length}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('feedback')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeTab === 'feedback'
+                    ? 'bg-pink-500/20 text-pink-300 border border-pink-500/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquareHeart className="w-3.5 h-3.5" />
+                <span>Citizen Feedback</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px] text-white">
+                  {feedbacks.length}
+                </span>
+              </button>
             </div>
 
             {/* TAB CONTENT: FLAGGED QUEUE */}
@@ -422,6 +506,101 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
                       </button>
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT: CITIZEN FEEDBACK & FEATURE REQUESTS */}
+            {activeTab === 'feedback' && (
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 no-scrollbar">
+                {feedbacks.length === 0 ? (
+                  <div className="py-12 text-center space-y-2 bg-slate-950/40 rounded-2xl border border-slate-800/80">
+                    <div className="w-12 h-12 rounded-full bg-pink-500/10 text-pink-400 flex items-center justify-center mx-auto">
+                      <MessageSquareHeart className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-white">No Citizen Feedback Yet</h4>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      User suggestions, bug reports, and UX feedback submitted via the Feedback button will appear here in real time.
+                    </p>
+                  </div>
+                ) : (
+                  feedbacks.map((fb) => {
+                    const dateStr = new Date(fb.created_at).toLocaleString('en-IN', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+
+                    const typeColors: Record<string, string> = {
+                      SUGGESTION: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                      BUG: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+                      UI: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                      PERFORMANCE: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    };
+
+                    return (
+                      <div
+                        key={fb.id}
+                        className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2.5 shadow-md hover:border-slate-700 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-md border text-[10px] font-black uppercase tracking-wider ${
+                              typeColors[fb.feedback_type] || 'bg-slate-800 text-slate-300 border-slate-700'
+                            }`}>
+                              {fb.feedback_type}
+                            </span>
+                            {/* Star rating */}
+                            <div className="flex items-center gap-0.5 text-amber-400">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-3 h-3 ${star <= fb.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-500 font-mono">{dateStr}</span>
+                            <button
+                              type="button"
+                              disabled={actionInProgress === fb.id}
+                              onClick={() => handleDeleteFeedback(fb.id)}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                              title="Delete feedback"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Citizen Message */}
+                        <p className="text-xs text-slate-200 leading-relaxed bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80 whitespace-pre-wrap">
+                          {fb.message}
+                        </p>
+
+                        {/* Contact info footer */}
+                        {(fb.contact_name || fb.contact_email) && (
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-0.5">
+                            {fb.contact_name && (
+                              <span className="flex items-center gap-1 font-medium text-slate-300">
+                                <User className="w-3 h-3 text-cyan-400" />
+                                {fb.contact_name}
+                              </span>
+                            )}
+                            {fb.contact_email && (
+                              <span className="flex items-center gap-1 text-slate-400 font-mono">
+                                <Mail className="w-3 h-3 text-slate-500" />
+                                {fb.contact_email}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
