@@ -200,7 +200,7 @@ Please inspect and dispatch repair teams.`;
             }`}>
               {sla.isOverdue 
                 ? (language === 'mr' ? `मुदत संपली (${sla.durationOpenStr})` : `SLA Breached (${sla.durationOpenStr})`)
-                : (language === 'mr' ? `SLA: ${sla.durationOpenStr} / ${hotspot.sla_hours} तास मर्यादा` : `SLA: Open for ${sla.durationOpenStr} / ${hotspot.sla_hours}h limit`)}
+                : (language === 'mr' ? `SLA: ${sla.durationOpenStr} / ${hotspot.sla_hours} तास मर्यादा` : `SLA: ${sla.durationOpenStr} / ${hotspot.sla_hours}h limit`)}
             </span>
           </div>
         </div>
