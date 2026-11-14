@@ -1,22 +1,17 @@
 import { useState, useMemo } from 'react';
 import { 
   X, 
-  Send, 
   Copy, 
   Check, 
-  ExternalLink, 
   Mail, 
   Download, 
   MapPin,
-  Paperclip,
   Phone,
-  ShieldAlert,
-  Flame,
   MessageCircle,
-  MessageSquare
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
 import type { Hotspot, Report } from '../types';
-import { PCMC_SARATHI } from '../utils/pcmcDirectory';
 import { getSLAStatus } from '../utils/geo';
 import { buildEscalationRouting, PCMC_ESCALATION_CONFIG } from '../config/escalationConfig';
 import { downloadFile, createWatermarkedImage } from '../utils/watermark';
@@ -31,10 +26,11 @@ interface EscalateModalProps {
 }
 
 export const EscalateModal = ({ hotspot, reports = [], language, onClose }: EscalateModalProps) => {
-  const [copied, setCopied] = useState<boolean>(false);
-  const [smsCopied, setSmsCopied] = useState<boolean>(false);
+  const [emailsCopied, setEmailsCopied] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
+  const [photoSaved, setPhotoSaved] = useState<boolean>(false);
   const [forceCommissionerTier, setForceCommissionerTier] = useState<boolean>(false);
+  const [showRecipients, setShowRecipients] = useState<boolean>(false);
   const t = TRANSLATIONS[language];
 
   const sla = useMemo(() => {
@@ -59,83 +55,79 @@ export const EscalateModal = ({ hotspot, reports = [], language, onClose }: Esca
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${hotspot.latitude},${hotspot.longitude}`;
   
-  const subject = routing.isHighTier 
-    ? `[OVERDUE ESCALATION] Urgent Civic Grievance: ${hotspot.category} (${hotspot.sub_tag}) at ${hotspot.area_name}` 
+  const subject = (routing.isHighTier || forceCommissionerTier)
+    ? `[URGENT ESCALATION] PCMC Civic Grievance: ${hotspot.category} (${hotspot.sub_tag}) at ${hotspot.area_name}`
     : `Urgent Civic Grievance: ${hotspot.category} (${hotspot.sub_tag}) at ${hotspot.area_name}`;
 
+  // Concise formal letter (<1,500 characters for iOS mailto URL limit safety)
   const formalLetter = `To,
-${routing.isHighTier ? `The Municipal Commissioner (Dr. Vijay Suryawanshi, IAS),\nThe Joint Commissioner - Vigilance & Quality Control (Mr. Manoj Lonkar),\n` : ''}The Zonal Officer (${routing.zone.zone} - ${routing.zone.officer}),
-The Designated Authority: ${routing.catConfig.primary_official.name} (${routing.catConfig.primary_official.role}),
+PCMC Municipal Administration & Zonal Officer (${routing.zone.zone}),
+${routing.catConfig.primary_official.name} (${routing.catConfig.primary_official.role}),
 ${routing.catConfig.department},
-PCMC Sarathi Grievance Cell,
 Pimpri Chinchwad Municipal Corporation (PCMC)
 
 Subject: ${subject}
 
 Respected Sir / Madam,
 
-This is a formal citizen grievance regarding an active public issue requiring urgent municipal attention and field inspection:
+This is a formal citizen grievance regarding an active municipal issue requiring inspection and resolution:
 
-• Issue Type: ${hotspot.category} (${hotspot.sub_tag})
+• Ticket ID: #${hotspot.id.substring(0, 8)}
+• Category: ${hotspot.category} • ${hotspot.sub_tag}
 • Department: ${routing.catConfig.department}
 • Locality: ${hotspot.area_name}
 • GPS Coordinates: ${hotspot.latitude.toFixed(5)}° N, ${hotspot.longitude.toFixed(5)}° E
 • Google Maps Location: ${googleMapsUrl}
-• Status: ${hotspot.status} ${sla.isOverdue ? '(OVERDUE - SLA EXCEEDED)' : '(ACTIVE)'}
-• Citizen Verifications: Confirmed on-site by ${hotspot.corroboration_count} local residents
-• Standard Municipal SLA: ${hotspot.sla_hours} hours (${sla.durationOpenStr} elapsed)
+• Status: ${hotspot.status} (${sla.durationOpenStr} / ${hotspot.sla_hours}h limit)
+• Citizen Confirmations: Confirmed on-site by ${hotspot.corroboration_count} residents
 
-PHOTO EVIDENCE LINKS (CLICK TO VIEW ORIGINAL FULL-RESOLUTION IMAGES):
-${distinctPhotos.length > 0 
-  ? distinctPhotos.map((url, i) => `• Photo ${i + 1}: ${url}`).join('\n') 
-  : `• Photo Evidence: Geotagged JPG attached with this email`}
+${distinctPhotos.length > 0 ? `• Photo Evidence Link: ${distinctPhotos[0]}\n` : ''}${(routing.isHighTier || forceCommissionerTier) ? 'URGENT ESCALATION: This issue has remained unresolved beyond municipal SLA guidelines and is escalated to the Municipal Commissioner for intervention.\n\n' : ''}Note: A geotagged photographic evidence image is attached with this email.
 
-${routing.isHighTier ? 'URGENT ESCALATION: This issue has remained unresolved beyond the stipulated municipal SLA deadline and is hereby escalated to the Municipal Commissioner and Vigilance & Quality Control cell for immediate enforcement.\n\n' : ''}Note: A geotagged & timestamped photographic evidence image is also attached with this email.
-
-Please arrange for an on-site inspection and dispatch work teams to resolve this issue at the earliest.
+Please arrange field inspection and resolve at the earliest.
 
 Sincerely,
 Concerned Residents & Taxpayers of ${hotspot.area_name}`;
 
+  // Comma-separated with NO spaces around commas for iOS/Android RFC compliance
   const toRecipients = routing.toEmails.join(',');
   const ccRecipients = routing.ccEmails.join(',');
 
-  // Gmail Web Compose Link with TO and CC
-  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(toRecipients)}&cc=${encodeURIComponent(ccRecipients)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(formalLetter)}`;
-
-  // Default Mail App URI
-  const mailtoUri = `mailto:${toRecipients}?cc=${encodeURIComponent(ccRecipients)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(formalLetter)}`;
-
-  // WhatsApp Sarathi Link
-  const whatsappSarathiUrl = `https://wa.me/91${PCMC_ESCALATION_CONFIG.central_grievance.sarathi_whatsapp}?text=${encodeURIComponent(
-    `*Civic Grievance - Pimpri Chinchwad*\n\n` +
-    `• *Issue*: ${hotspot.category} (${hotspot.sub_tag})\n` +
-    `• *Location*: ${hotspot.area_name}\n` +
-    `• *GPS*: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}\n` +
-    `• *Status*: ${hotspot.status} ${sla.isOverdue ? '(OVERDUE)' : ''}\n` +
-    `• *Confirmed by*: ${hotspot.corroboration_count} residents on-site\n\n` +
-    (photoUrl ? `📸 *Photo Evidence Link*:\n${photoUrl}\n\n` : '') +
-    `📍 *Google Maps Location*:\n${googleMapsUrl}\n\n` +
-    `Please register this grievance and dispatch field repair team.`
-  )}`;
-
-  const sarathiNumber = PCMC_ESCALATION_CONFIG.central_grievance.sarathi_whatsapp;
-  const smsBody = language === 'mr'
-    ? `PCMC नागरी तक्रार:\nप्रकार: ${t.categories[hotspot.category] || hotspot.category} (${hotspot.sub_tag})\nठिकाण: ${hotspot.area_name}\nGPS: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}\nनकाशा: ${googleMapsUrl}\nतक्रार आयडी: #${hotspot.id.substring(0, 8)}\nकृपया तपासणी करून दुरुस्ती करावी.`
-    : `PCMC Civic Grievance:\nIssue: ${hotspot.category} (${hotspot.sub_tag})\nLocation: ${hotspot.area_name}\nGPS: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}\nMap: ${googleMapsUrl}\nID: #${hotspot.id.substring(0, 8)}\nPlease inspect & resolve.`;
-
-  const smsUri = `sms:${sarathiNumber}?&body=${encodeURIComponent(smsBody)}`;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(`To: ${toRecipients}\nCc: ${ccRecipients}\nSubject: ${subject}\n\n${formalLetter}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  // Cross-platform iOS & Android mailto trigger
+  const openDefaultEmailApp = () => {
+    const mailtoUri = `mailto:${toRecipients}?cc=${ccRecipients}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(formalLetter)}`;
+    window.location.href = mailtoUri;
   };
 
-  const handleCopySms = () => {
-    navigator.clipboard.writeText(smsBody);
-    setSmsCopied(true);
-    setTimeout(() => setSmsCopied(false), 2500);
+  // Gmail Web Compose Link
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(toRecipients)}&cc=${encodeURIComponent(ccRecipients)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(formalLetter)}`;
+
+  // WhatsApp formatted complaint summary
+  const whatsappMessage = `*PCMC Civic Grievance Escalation*
+• *Ticket*: #${hotspot.id.substring(0, 8)}
+• *Issue*: ${hotspot.category} (${hotspot.sub_tag})
+• *Location*: ${hotspot.area_name}
+• *Zone*: ${routing.zone.zone}
+• *GPS*: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}
+• *Status*: ${hotspot.status} ${sla.isOverdue ? '(SLA Breached)' : ''}
+• *Confirmations*: ${hotspot.corroboration_count} residents on-site
+${photoUrl ? `• *Photo*: ${photoUrl}\n` : ''}• *Map*: ${googleMapsUrl}
+
+Please inspect and dispatch repair teams.`;
+
+  // SMS trigger with safe iOS (&body=) vs Android (?body=) handling
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const officerPhone = routing.catConfig.primary_official.phone.replace(/[^0-9]/g, '') || PCMC_ESCALATION_CONFIG.central_grievance.sarathi_whatsapp;
+  const smsBody = language === 'mr'
+    ? `PCMC नागरी तक्रार #${hotspot.id.substring(0, 8)}:\n${t.categories[hotspot.category] || hotspot.category} (${hotspot.sub_tag}) - ${hotspot.area_name}\nनकाशा: ${googleMapsUrl}\nकृपया तपासणी व दुरुस्ती करावी.`
+    : `PCMC Grievance #${hotspot.id.substring(0, 8)}:\n${hotspot.category} (${hotspot.sub_tag}) at ${hotspot.area_name}\nMap: ${googleMapsUrl}\nPlease inspect & resolve.`;
+  const smsDelimiter = isIOS ? '&body=' : '?body=';
+  const smsUri = `sms:${officerPhone}${smsDelimiter}${encodeURIComponent(smsBody)}`;
+
+  const handleCopyEmails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(`TO: ${routing.toEmails.join(', ')}\nCC: ${routing.ccEmails.join(', ')}`);
+    setEmailsCopied(true);
+    setTimeout(() => setEmailsCopied(false), 2500);
   };
 
   const handleDownloadWatermark = async () => {
@@ -152,6 +144,7 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
         createdAt: hotspot.created_at
       });
       await downloadFile(stamped, `PCMC_Evidence_${hotspot.id.substring(0, 8)}.jpg`);
+      setPhotoSaved(true);
     } catch (err) {
       console.error('Watermark error:', err);
     } finally {
@@ -160,244 +153,227 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
   };
 
   return (
-    <div className="fixed inset-0 z-[1200] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl no-scrollbar">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-800 pb-3">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-              {routing.zone.zone} • {routing.catConfig.department}
-            </span>
-            <h3 className="text-base font-bold text-white mt-0.5">
-              {language === 'mr' ? 'PCMC अधिकाऱ्यांना अधिकृत ईमेल पाठवा' : 'Official Municipal Escalation'}
+    <div className="fixed inset-0 z-[1200] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-[#090D16] border border-white/[0.1] w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-5 space-y-3.5 shadow-2xl no-scrollbar">
+        {/* 1. Modal Header: Title + Monospace Ticket Badge + Close Button */}
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate">
+              {language === 'mr' ? 'अधिकृत महानगरपालिका तक्रार निवारण' : 'Official Municipal Escalation'}
             </h3>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.1] text-emerald-400 font-mono text-[11px] font-bold shrink-0">
+              #{hotspot.id.substring(0, 8)}
+            </span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-slate-400 hover:text-white flex items-center justify-center transition-colors shrink-0 ml-2"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Issue Card Summary */}
-        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
-          <div className="flex justify-between items-center">
-            <span className="font-bold text-white">{hotspot.category} • #{hotspot.sub_tag}</span>
-            <span className="text-cyan-400 font-mono text-[11px]">#{hotspot.id.substring(0, 8)}</span>
+        {/* 2. Single Issue Summary Card */}
+        <div className="bg-[#111827] p-3.5 rounded-2xl border border-white/[0.07] space-y-2 shadow-sm">
+          <div>
+            <div className="font-extrabold text-sm text-white truncate">
+              {hotspot.category} • {hotspot.sub_tag}
+            </div>
+            <p className="text-slate-400 flex items-center gap-1.5 text-xs mt-0.5">
+              <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">{hotspot.area_name}</span>
+            </p>
           </div>
-          <p className="text-slate-400 flex items-center gap-1 text-[11px]">
-            <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
-            <span className="truncate">{hotspot.area_name}</span>
-          </p>
+
+          <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
+            <span className="px-2 py-0.5 rounded-md bg-cyan-950/70 text-cyan-300 border border-cyan-800/60 font-bold">
+              {routing.zone.zone}
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/80 font-medium truncate max-w-[200px]">
+              {routing.catConfig.department}
+            </span>
+            <span className={`px-2 py-0.5 rounded-md border font-bold ${
+              sla.isOverdue 
+                ? 'bg-rose-950/70 text-rose-300 border-rose-800/70' 
+                : 'bg-amber-950/70 text-amber-300 border-amber-800/70'
+            }`}>
+              {sla.isOverdue 
+                ? (language === 'mr' ? `मुदत संपली (${sla.durationOpenStr})` : `SLA Breached (${sla.durationOpenStr})`)
+                : (language === 'mr' ? `SLA: ${sla.durationOpenStr} / ${hotspot.sla_hours} तास मर्यादा` : `SLA: Open for ${sla.durationOpenStr} / ${hotspot.sla_hours}h limit`)}
+            </span>
+          </div>
         </div>
 
-        {/* Escalation Tier Status Badge */}
-        <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 ${
-          routing.isHighTier 
-            ? 'bg-rose-950/40 border-rose-500/50 text-rose-200' 
-            : 'bg-slate-950/70 border-slate-800 text-slate-300'
-        }`}>
-          <div className="flex items-center gap-2 min-w-0">
-            {routing.isHighTier ? (
-              <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0" />
-            ) : (
-              <Flame className="w-5 h-5 text-cyan-400 shrink-0" />
-            )}
-            <div>
-              <span className="font-extrabold block text-xs">
-                {routing.isHighTier 
-                  ? '🚨 Level 2: Municipal Commissioner & Vigilance Escalation' 
-                  : 'Tier 1: Departmental Action Desk'}
+        {/* 3. Segmented Escalation Tier Toggle */}
+        <div className="p-1 bg-[#111827] border border-white/[0.08] rounded-xl grid grid-cols-2 gap-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setForceCommissionerTier(false)}
+            className={`py-2 px-2.5 rounded-lg font-bold text-center transition-all ${
+              !forceCommissionerTier
+                ? 'bg-[#10B981] text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            {language === 'mr' ? 'स्तर १: विभाग व क्षेत्रीय प्रमुख' : 'Tier 1: Dept & Zone Head'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setForceCommissionerTier(true)}
+            className={`py-2 px-2.5 rounded-lg font-bold text-center transition-all ${
+              forceCommissionerTier
+                ? 'bg-[#10B981] text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            {language === 'mr' ? '+ आयुक्तांकडे पाठवा' : '+ Escalate to Commissioner'}
+          </button>
+        </div>
+
+        {/* 4. Compact Designated Authority Card + Collapsible Recipients */}
+        <div className="bg-[#111827] p-3.5 rounded-2xl border border-white/[0.07] space-y-2.5 text-xs shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
+                {language === 'mr' ? 'नियुक्त जबाबदार अधिकारी' : 'Designated Authority'}
               </span>
-              <span className="text-[10px] text-slate-400 block truncate">
-                {routing.isHighTier 
-                  ? 'Dr. Vijay Suryawanshi (IAS) & Vigilance Joint Commissioner CC\'d' 
-                  : `Target SLA: ${hotspot.sla_hours}h (${sla.durationOpenStr})`}
+              <div className="font-extrabold text-white text-xs sm:text-sm mt-0.5 truncate">
+                {routing.catConfig.primary_official.name}
+              </div>
+              <span className="text-slate-400 text-[11px] block truncate">
+                {routing.catConfig.primary_official.role}
               </span>
             </div>
-          </div>
 
-          {!sla.isOverdue && (
-            <button
-              type="button"
-              onClick={() => setForceCommissionerTier(!forceCommissionerTier)}
-              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold shrink-0 transition-colors ${
-                forceCommissionerTier 
-                  ? 'bg-rose-600 text-white' 
-                  : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700'
-              }`}
-            >
-              {forceCommissionerTier ? '✓ Level 2 On' : '+ Escalate to Commissioner'}
-            </button>
-          )}
-        </div>
-
-        {/* Primary Nodal Official Contact Card */}
-        <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-              Primary Designated Authority
-            </span>
             <a
               href={`tel:${routing.catConfig.primary_official.phone.replace(/[^0-9]/g, '')}`}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-lg border border-cyan-800/80 hover:bg-cyan-900"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 px-3 py-1.5 rounded-xl border border-emerald-500/30 active:scale-95 transition-all shrink-0"
             >
-              <Phone className="w-3 h-3" />
-              <span>Call: {routing.catConfig.primary_official.phone}</span>
+              <Phone className="w-3.5 h-3.5" />
+              <span>{language === 'mr' ? 'कॉल करा' : 'Call'}</span>
             </a>
           </div>
 
-          <div className="font-semibold text-white">
-            {routing.catConfig.primary_official.name}
-            <span className="text-slate-400 font-normal block text-[11px]">
-              {routing.catConfig.primary_official.role}
-            </span>
-          </div>
+          {/* Collapsible Recipients Accordion Row */}
+          <div className="pt-2 border-t border-white/[0.06] space-y-1.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <button
+                type="button"
+                onClick={() => setShowRecipients(!showRecipients)}
+                className="text-slate-400 hover:text-emerald-400 flex items-center gap-1 font-medium transition-colors"
+              >
+                <span>
+                  {language === 'mr'
+                    ? `ईमेल प्राप्तकर्ते: ${routing.toEmails.length + routing.ccEmails.length} PCMC अधिकारी (To व CC)`
+                    : `Recipients: ${routing.toEmails.length + routing.ccEmails.length} PCMC Officials (To & CC)`}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showRecipients ? 'rotate-180' : ''}`} />
+              </button>
 
-          <div className="pt-1 border-t border-slate-900 text-[11px] space-y-0.5 font-mono">
-            <div className="flex items-start gap-1 text-slate-400">
-              <span className="text-[10px] uppercase font-bold text-slate-500 w-7 shrink-0">TO:</span>
-              <span className="text-cyan-300 break-all">{toRecipients}</span>
+              <button
+                type="button"
+                onClick={handleCopyEmails}
+                className="text-slate-400 hover:text-emerald-400 flex items-center gap-1 text-[10px] font-semibold py-0.5 px-1.5 rounded hover:bg-white/[0.05] transition-colors"
+                title="Copy email addresses"
+              >
+                {emailsCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{emailsCopied ? (language === 'mr' ? 'कॉपी झाले!' : 'Copied!') : (language === 'mr' ? 'ईमेल कॉपी' : 'Copy Emails')}</span>
+              </button>
             </div>
-            <div className="flex items-start gap-1 text-slate-400">
-              <span className="text-[10px] uppercase font-bold text-slate-500 w-7 shrink-0">CC:</span>
-              <span className="text-slate-300 break-all">{ccRecipients}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Step-by-Step Attachment Guide Callout */}
-        <div className="bg-cyan-950/40 border border-cyan-800/60 rounded-xl p-2.5 text-xs text-cyan-200 flex items-start gap-2">
-          <Paperclip className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-          <div className="text-[11px] leading-relaxed">
-            <strong className="text-cyan-300 block">
-              {language === 'mr' ? 'फोटो पुरावा कसा जोडायचा:' : 'How to attach photo proof:'}
-            </strong>
-            {language === 'mr' ? (
-              <>
-                १. खालील <strong>&ldquo;वॉटरमार्क पुरावा डाउनलोड करा&rdquo;</strong> वर टॅप करून वेळेचा शिक्का असलेला JPG सेव्ह करा.
-                <br />
-                २. <strong>&ldquo;Gmail मध्ये उघडा&rdquo;</strong> वर टॅप करा (तक्रार पत्र आधीच टाईप केलेले आहे), 📎 <strong>Attach</strong> निवडून सेव्ह केलेला फोटो जोडा!
-              </>
-            ) : (
-              <>
-                1. Tap <strong>&ldquo;Download Watermarked Proof&rdquo;</strong> below to save the official timestamped JPG to your device.
-                <br />
-                2. Tap <strong>&ldquo;Open in Gmail&rdquo;</strong> (the letter is already typed), tap 📎 <strong>Attach</strong>, and select the downloaded JPG!
-              </>
+            {showRecipients && (
+              <div className="pt-1.5 space-y-1 font-mono text-[10px] bg-[#090D16]/60 p-2.5 rounded-xl border border-white/[0.05] animate-in fade-in duration-150">
+                <div className="flex items-start gap-1.5">
+                  <span className="text-[9px] uppercase font-bold text-emerald-400 w-6 shrink-0 pt-0.5">TO:</span>
+                  <span className="text-emerald-300/90 break-all select-all leading-relaxed">{routing.toEmails.join(', ')}</span>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="text-[9px] uppercase font-bold text-slate-500 w-6 shrink-0 pt-0.5">CC:</span>
+                  <span className="text-slate-400 break-all select-all leading-relaxed">{routing.ccEmails.join(', ')}</span>
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Dispatch Action Buttons */}
+        {/* 5. Clean 2-Step Action Dock + WhatsApp & SMS Row */}
         <div className="space-y-2.5 pt-1">
-          {/* 1. Download Watermarked Proof */}
+          {/* Row 1 — Step 1: Download Watermarked Photo */}
           <button
             type="button"
             disabled={downloading}
             onClick={handleDownloadWatermark}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 active:scale-95 transition-all shadow-sm"
+            className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border active:scale-[0.98] transition-all shadow-sm ${
+              photoSaved
+                ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
+                : 'bg-[#111827] hover:bg-slate-800 text-slate-200 border-white/10'
+            }`}
           >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{downloading ? (language === 'mr' ? 'पुरावा शिक्का तयार करत आहे...' : 'Generating Evidence Stamp...') : t.downloadWatermarked}</span>
-          </button>
-
-          {/* 2. Open Gmail Web */}
-          <a
-            href={gmailUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
-          >
-            <Mail className="w-4 h-4" />
-            <span>{t.openGmail} (Auto-Routed To & Cc)</span>
-          </a>
-
-          {/* 3. Open Default Mail App */}
-          <a
-            href={mailtoUri}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 active:scale-95 transition-all"
-          >
-            <Send className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{t.openMailApp}</span>
-          </a>
-
-          {/* 4. WhatsApp Sarathi Quick Grievance */}
-          <a
-            href={whatsappSarathiUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2.5 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-all shadow-sm"
-          >
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-300" />
-            <span>{language === 'mr' ? `सारथी WhatsApp वर पाठवा (${sarathiNumber})` : `Send to Sarathi WhatsApp (${sarathiNumber})`}</span>
-          </a>
-
-          {/* 5. SMS Sarathi Quick Grievance (Same number as Sarathi WhatsApp) */}
-          <div className="flex items-center gap-1.5">
-            <a
-              href={smsUri}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-blue-700 hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-2 border border-blue-500 active:scale-95 transition-all shadow-sm"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-blue-200" />
-              <span>{language === 'mr' ? `सारथी SMS पाठवा (${sarathiNumber})` : `Send SMS to Sarathi (${sarathiNumber})`}</span>
-            </a>
-            <button
-              type="button"
-              onClick={handleCopySms}
-              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 active:scale-95 shrink-0 flex items-center gap-1 text-xs font-semibold"
-              title={language === 'mr' ? 'SMS मजकूर कॉपी करा' : 'Copy SMS text'}
-            >
-              {smsCopied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-green-400" />
-                  <span className="text-green-400 text-[11px]">{language === 'mr' ? 'कॉपी झाले!' : 'Copied!'}</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[11px]">{language === 'mr' ? 'कॉपी SMS' : 'Copy SMS'}</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* 6. Copy Letter & Recipients */}
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 active:scale-95 transition-all"
-          >
-            {copied ? (
+            {photoSaved ? (
               <>
-                <Check className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-green-400">{language === 'mr' ? 'अधिकृत पत्र व ईमेल पत्ते कॉपी झाले!' : 'Copied Formal Letter, To & Cc!'}</span>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{language === 'mr' ? '✓ फोटो सेव्ह झाला' : '✓ Photo Saved'}</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 text-slate-400" />
-                <span>{t.copyLetter}</span>
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>
+                  {downloading
+                    ? (language === 'mr' ? 'फोटो तयार करत आहे...' : 'Generating Evidence...')
+                    : (language === 'mr' ? '📥 टप्पा १: वॉटरमार्क फोटो डाउनलोड करा' : '📥 Step 1: Download Watermarked Photo')}
+                </span>
               </>
             )}
           </button>
-        </div>
 
-        {/* State Level Escalation Banner (Aaple Sarkar) */}
-        <div className="bg-amber-950/40 border border-amber-600/40 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
-          <div className="text-amber-200 text-[11px]">
-            <strong>{language === 'mr' ? '७ दिवसांपेक्षा जास्त प्रलंबित?' : 'Unresolved > 7 days?'}</strong> {language === 'mr' ? 'थेट महाराष्ट्र शासनाच्या आपले सरकार पोर्टलवर तक्रार नोंदवा.' : 'File directly on Maharashtra State Aaple Sarkar portal.'}
+          {/* Row 2 — Step 2: Open Default Email App (Glowing Emerald CTA) */}
+          <div>
+            <button
+              type="button"
+              onClick={openDefaultEmailApp}
+              className="w-full py-3 px-4 rounded-xl bg-[#10B981] hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all"
+            >
+              <Mail className="w-4 h-4 text-slate-950" />
+              <span>{language === 'mr' ? '✉️ टप्पा २: ईमेल ॲप उघडा' : '✉️ Step 2: Open Default Email App'}</span>
+            </button>
+            <a
+              href={gmailUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-center text-[11px] text-slate-400 hover:text-emerald-400 underline transition-colors pt-1.5 block"
+            >
+              {language === 'mr' ? 'किंवा Gmail Web मध्ये उघडा (Auto-Routed)' : 'or Open in Gmail Web (Auto-Routed)'}
+            </a>
           </div>
-          <a
-            href={PCMC_SARATHI.aapleSarkar}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] shrink-0 flex items-center gap-1 shadow-sm"
-          >
-            <span>Aaple Sarkar</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
+
+          {/* Row 3 — Side-by-Side Quick Share & SMS (2-Column Grid) */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 rounded-xl border border-white/10 bg-[#111827] hover:bg-emerald-950/30 hover:border-emerald-500/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95 transition-all shadow-sm"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-400" />
+              <span>💬 WhatsApp</span>
+            </a>
+
+            <a
+              href={smsUri}
+              className="h-11 rounded-xl border border-white/10 bg-[#111827] hover:bg-cyan-950/30 hover:border-cyan-500/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95 transition-all shadow-sm"
+            >
+              <MessageSquare className="w-4 h-4 text-cyan-400" />
+              <span>📱 Send SMS</span>
+            </a>
+          </div>
+
+          {/* Helper Micro-Caption */}
+          <p className="text-[12px] text-slate-400 text-center leading-relaxed pt-0.5">
+            {language === 'mr'
+              ? 'टीप: डाऊनलोड केलेला फोटो पुरावा जोडण्यासाठी तुमच्या ईमेल ॲपमधील Attach (📎) वर टॅप करा.'
+              : 'Tip: Tap Attach (📎) in your email app to add your downloaded photo proof.'}
+          </p>
         </div>
       </div>
     </div>
