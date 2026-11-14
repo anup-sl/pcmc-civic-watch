@@ -144,7 +144,6 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
   const [clearanceError, setClearanceError] = useState<string | null>(null);
 
   // WhatsApp & SMS Action States
-  const [personalNote, setPersonalNote] = useState<string>('');
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
 
   const loadHotspots = async () => {
@@ -215,7 +214,6 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
     setClearancePhotoBlob(null);
     setClearancePhotoPreview(null);
     setClearanceError(null);
-    setPersonalNote('');
     setIsSharingWhatsApp(false);
 
     setLoadingReports(true);
@@ -333,19 +331,14 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
       const latestPhoto = reports.length > 0 ? reports[reports.length - 1].photo_url : null;
       const sla = getSLAStatus(selectedHotspot.created_at, selectedHotspot.sla_hours, selectedHotspot.status, selectedHotspot.resolved_at, language);
 
-      const noteBlock = personalNote.trim()
-        ? `\n\n📝 *Note from Citizen:* "${personalNote.trim()}"`
-        : '';
-
       const whatsappShareText = 
         `🚨 *${selectedHotspot.category} • ${selectedHotspot.sub_tag}*\n` +
         `📍 *Location*: ${selectedHotspot.area_name}\n` +
         `🏛 *Prabhag/Ward*: ${ward.badge} (${ward.zone})\n` +
         `🎫 *Ticket*: #${selectedHotspot.id.substring(0, 8)}\n` +
         `⏱ *Status*: ${selectedHotspot.status} (${sla.durationOpenStr} / ${selectedHotspot.sla_hours}h SLA)\n` +
-        `👥 *Citizen Verifications*: ${selectedHotspot.corroboration_count} on-site` +
-        noteBlock +
-        `\n\n🗺 *Google Maps Location*:\n${googleMapsUrl}\n\n` +
+        `👥 *Citizen Verifications*: ${selectedHotspot.corroboration_count} on-site\n\n` +
+        `🗺 *Google Maps Location*:\n${googleMapsUrl}\n\n` +
         `🔗 *PCMC CivicWatch*: https://pcmc-civic-watch.vercel.app/`;
 
       // Try creating watermarked image file for native Web Share API
@@ -849,7 +842,7 @@ Map: ${googleMapsUrl}
                 </button>
               </div>
             ) : (
-              /* ACTION BUTTONS: ESCALATE TO PCMC (PRIMARY), FOLLOWED BY WHATSAPP NOTE, WHATSAPP & SMS, SARATHI NOTE, AND CLEARANCE */
+              /* ACTION BUTTONS: ESCALATE TO PCMC (PRIMARY), FOLLOWED BY WHATSAPP & SMS, SARATHI NOTE, AND CLEARANCE */
               <div className="space-y-2.5 pt-1">
                 {/* 1. ESCALATE TO PCMC OFFICIALS BUTTON (PRIMARY FULL-WIDTH ACTION) */}
                 <button
@@ -861,59 +854,7 @@ Map: ${googleMapsUrl}
                   <span>{t.escalateEmail} (Ward Officer + Nodal Dept)</span>
                 </button>
 
-                {/* ROW 1: OPTIONAL WHATSAPP PERSONAL NOTE INPUT */}
-                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="font-semibold flex items-center gap-1 text-slate-300">
-                      <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      {language === 'mr' ? 'WhatsApp टीप (पर्यायी):' : 'WhatsApp Note (Optional):'}
-                    </span>
-                    {personalNote && (
-                      <button
-                        type="button"
-                        onClick={() => setPersonalNote('')}
-                        className="text-[10px] text-slate-500 hover:text-slate-300"
-                      >
-                        {language === 'mr' ? 'साफ करा' : 'Clear'}
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={personalNote}
-                    onChange={(e) => setPersonalNote(e.target.value)}
-                    placeholder={
-                      language === 'mr'
-                        ? 'सोसायटी ग्रुप / नगरसेवकांसाठी टीप जोडा (पर्यायी)...'
-                        : 'Add note for society group / corporator (optional)...'
-                    }
-                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                  />
-                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const chip = language === 'mr' ? 'कृपया पुष्टी करा' : 'Please boost & verify';
-                        setPersonalNote(prev => prev ? `${prev} • ${chip}` : chip);
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 active:scale-95 transition-all"
-                    >
-                      + {language === 'mr' ? 'कृपया पुष्टी करा' : 'Please boost & verify'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const chip = language === 'mr' ? 'अनेक दिवस प्रलंबित' : 'Unresolved for days';
-                        setPersonalNote(prev => prev ? `${prev} • ${chip}` : chip);
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 active:scale-95 transition-all"
-                    >
-                      + {language === 'mr' ? 'अनेक दिवस प्रलंबित' : 'Unresolved for days'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* ROW 2: SIDE-BY-SIDE 2-COLUMN GRID (EQUAL WIDTH) */}
+                {/* ROW 1: SIDE-BY-SIDE 2-COLUMN GRID (WHATSAPP & SMS) */}
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -926,7 +867,7 @@ Map: ${googleMapsUrl}
                     ) : (
                       <MessageCircle className="w-3.5 h-3.5" />
                     )}
-                    <span>{language === 'mr' ? '💬 WhatsApp वर पाठवा' : '💬 Share on WhatsApp'}</span>
+                    <span>WhatsApp</span>
                   </button>
 
                   <button
@@ -935,21 +876,21 @@ Map: ${googleMapsUrl}
                     className="h-11 rounded-xl bg-[#111827] border border-cyan-500/40 hover:bg-cyan-950/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>📱 SMS PCMC (9922501450)</span>
+                    <span>SMS</span>
                   </button>
                 </div>
 
-                {/* ROW 3: SARATHI WHATSAPP AVAILABILITY CALLOUT */}
+                {/* ROW 2: SARATHI WHATSAPP AVAILABILITY CALLOUT */}
                 <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-300/80 leading-relaxed flex items-start gap-1.5">
                   <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                   <span>
                     {language === 'mr'
-                      ? 'नोंद: PCMC ची सारथी हेल्पलाइन (9922501450) सध्या WhatsApp वर उपलब्ध नाही. अधिकृत तक्रारीसाठी वरील SMS (9922501450) किंवा ईमेल वापरा.'
-                      : 'Note: PCMC’s Sarathi helpline (9922501450) is currently unavailable on WhatsApp. Use SMS (9922501450) or Email for official PCMC logging.'}
+                      ? 'नोंद: PCMC ची सारथी हेल्पलाइन (9922501450) सध्या WhatsApp वर उपलब्ध नाही.'
+                      : "Note: PCMC's Sarathi helpline (9922501450) is currently unavailable on WhatsApp."}
                   </span>
                 </div>
 
-                {/* ROW 4: REMAINING SECONDARY ACTIONS (CLEARANCE & CONTENT FLAG) */}
+                {/* ROW 3: REMAINING SECONDARY ACTIONS (CLEARANCE & CONTENT FLAG) */}
                 <div className="space-y-1.5 pt-0.5">
                   {selectedHotspot.status !== 'RESOLVED' ? (
                     <button
