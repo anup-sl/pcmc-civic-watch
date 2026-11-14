@@ -7,16 +7,13 @@ import {
   Download, 
   MapPin,
   Phone,
-  MessageCircle,
-  MessageSquare,
   ChevronDown
 } from 'lucide-react';
 import type { Hotspot, Report } from '../types';
 import { getSLAStatus } from '../utils/geo';
-import { buildEscalationRouting, PCMC_ESCALATION_CONFIG } from '../config/escalationConfig';
+import { buildEscalationRouting } from '../config/escalationConfig';
 import { downloadFile, createWatermarkedImage } from '../utils/watermark';
 import type { Language } from '../utils/i18n';
-import { TRANSLATIONS } from '../utils/i18n';
 
 interface EscalateModalProps {
   hotspot: Hotspot;
@@ -31,7 +28,6 @@ export const EscalateModal = ({ hotspot, reports = [], language, onClose }: Esca
   const [photoSaved, setPhotoSaved] = useState<boolean>(false);
   const [forceCommissionerTier, setForceCommissionerTier] = useState<boolean>(false);
   const [showRecipients, setShowRecipients] = useState<boolean>(false);
-  const t = TRANSLATIONS[language];
 
   const sla = useMemo(() => {
     return getSLAStatus(hotspot.created_at, hotspot.sla_hours, hotspot.status, hotspot.resolved_at, language);
@@ -100,28 +96,6 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
 
   // Gmail Web Compose Link
   const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(toRecipients)}&cc=${encodeURIComponent(ccRecipients)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(formalLetter)}`;
-
-  // WhatsApp formatted complaint summary
-  const whatsappMessage = `*PCMC Civic Grievance Escalation*
-• *Ticket*: #${hotspot.id.substring(0, 8)}
-• *Issue*: ${hotspot.category} (${hotspot.sub_tag})
-• *Location*: ${hotspot.area_name}
-• *Zone*: ${routing.zone.zone}
-• *GPS*: ${hotspot.latitude.toFixed(5)}, ${hotspot.longitude.toFixed(5)}
-• *Status*: ${hotspot.status} ${sla.isOverdue ? '(SLA Breached)' : ''}
-• *Confirmations*: ${hotspot.corroboration_count} residents on-site
-${photoUrl ? `• *Photo*: ${photoUrl}\n` : ''}• *Map*: ${googleMapsUrl}
-
-Please inspect and dispatch repair teams.`;
-
-  // SMS trigger with safe iOS (&body=) vs Android (?body=) handling
-  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const officerPhone = routing.catConfig.primary_official.phone.replace(/[^0-9]/g, '') || PCMC_ESCALATION_CONFIG.central_grievance.sarathi_whatsapp;
-  const smsBody = language === 'mr'
-    ? `PCMC नागरी तक्रार #${hotspot.id.substring(0, 8)}:\n${t.categories[hotspot.category] || hotspot.category} (${hotspot.sub_tag}) - ${hotspot.area_name}\nनकाशा: ${googleMapsUrl}\nकृपया तपासणी व दुरुस्ती करावी.`
-    : `PCMC Grievance #${hotspot.id.substring(0, 8)}:\n${hotspot.category} (${hotspot.sub_tag}) at ${hotspot.area_name}\nMap: ${googleMapsUrl}\nPlease inspect & resolve.`;
-  const smsDelimiter = isIOS ? '&body=' : '?body=';
-  const smsUri = `sms:${officerPhone}${smsDelimiter}${encodeURIComponent(smsBody)}`;
 
   const handleCopyEmails = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -344,27 +318,6 @@ Please inspect and dispatch repair teams.`;
               className="text-center text-[11px] text-slate-400 hover:text-emerald-400 underline transition-colors pt-1.5 block"
             >
               {language === 'mr' ? 'किंवा Gmail Web मध्ये उघडा (Auto-Routed)' : 'or Open in Gmail Web (Auto-Routed)'}
-            </a>
-          </div>
-
-          {/* Row 3 — Side-by-Side Quick Share & SMS (2-Column Grid) */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-11 rounded-xl border border-white/10 bg-[#111827] hover:bg-emerald-950/30 hover:border-emerald-500/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95 transition-all shadow-sm"
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-400" />
-              <span>💬 WhatsApp</span>
-            </a>
-
-            <a
-              href={smsUri}
-              className="h-11 rounded-xl border border-white/10 bg-[#111827] hover:bg-cyan-950/30 hover:border-cyan-500/30 text-white flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95 transition-all shadow-sm"
-            >
-              <MessageSquare className="w-4 h-4 text-cyan-400" />
-              <span>📱 Send SMS</span>
             </a>
           </div>
 

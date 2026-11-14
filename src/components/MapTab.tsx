@@ -6,12 +6,14 @@ import {
   X, 
   Flame, 
   Check, 
-  Share2, 
   Clock, 
   Camera, 
   Send,
   Download,
-  Flag
+  Flag,
+  MessageSquare,
+  MessageCircle,
+  Info
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -22,6 +24,8 @@ import { PCMC_CENTER, getSLAStatus } from '../utils/geo';
 import { EscalateModal } from './EscalateModal';
 import { FlagModal } from './FlagModal';
 import { exportHotspotsToCSV } from '../utils/csvExport';
+import { createWatermarkedImage } from '../utils/watermark';
+import { getWardForArea } from '../utils/pcmcDirectory';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 import confetti from 'canvas-confetti';
@@ -139,6 +143,10 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
   const [showClearanceForm, setShowClearanceForm] = useState<boolean>(false);
   const [clearanceError, setClearanceError] = useState<string | null>(null);
 
+  // WhatsApp & SMS Action States
+  const [personalNote, setPersonalNote] = useState<string>('');
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
+
   const loadHotspots = async () => {
     try {
       const { data, error } = await supabase
@@ -207,6 +215,8 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
     setClearancePhotoBlob(null);
     setClearancePhotoPreview(null);
     setClearanceError(null);
+    setPersonalNote('');
+    setIsSharingWhatsApp(false);
 
     setLoadingReports(true);
     try {
@@ -313,25 +323,104 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
     }
   };
 
-  const handleShareWhatsApp = () => {
+  const handleShareWhatsApp = async () => {
     if (!selectedHotspot) return;
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${selectedHotspot.latitude},${selectedHotspot.longitude}`;
-    const latestPhoto = reports.length > 0 ? reports[reports.length - 1].photo_url : null;
-    
-    const message = 
-      `🚨 *Civic Issue Grievance - PCMC*\n\n` +
-      `• *Issue*: ${selectedHotspot.category} (${selectedHotspot.sub_tag})\n` +
-      `• *Location*: ${selectedHotspot.area_name}\n` +
-      `• *Status*: ${selectedHotspot.status}\n` +
-      `• *Residents on-site*: ${selectedHotspot.corroboration_count} citizen verifications\n` +
-      `• *SLA Deadline*: ${selectedHotspot.sla_hours} hours\n` +
-      `• *GPS*: ${selectedHotspot.latitude.toFixed(5)}, ${selectedHotspot.longitude.toFixed(5)}\n\n` +
-      (latestPhoto ? `📸 *Photo Evidence Link*:\n${latestPhoto}\n\n` : '') +
-      `📍 *Google Maps Location*:\n${googleMapsUrl}\n\n` +
-      `_Forwarded for municipal field inspection and timely resolution._`;
+    setIsSharingWhatsApp(true);
 
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, '_blank');
+    try {
+      const ward = getWardForArea(selectedHotspot.area_name, selectedHotspot.latitude, selectedHotspot.longitude);
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${selectedHotspot.latitude},${selectedHotspot.longitude}`;
+      const latestPhoto = reports.length > 0 ? reports[reports.length - 1].photo_url : null;
+      const sla = getSLAStatus(selectedHotspot.created_at, selectedHotspot.sla_hours, selectedHotspot.status, selectedHotspot.resolved_at, language);
+
+      const noteBlock = personalNote.trim()
+        ? `\n\n📝 *Note from Citizen:* "${personalNote.trim()}"`
+        : '';
+
+      const whatsappShareText = 
+        `🚨 *${selectedHotspot.category} • ${selectedHotspot.sub_tag}*\n` +
+        `📍 *Location*: ${selectedHotspot.area_name}\n` +
+        `🏛 *Prabhag/Ward*: ${ward.badge} (${ward.zone})\n` +
+        `🎫 *Ticket*: #${selectedHotspot.id.substring(0, 8)}\n` +
+        `⏱ *Status*: ${selectedHotspot.status} (${sla.durationOpenStr} / ${selectedHotspot.sla_hours}h SLA)\n` +
+        `👥 *Citizen Verifications*: ${selectedHotspot.corroboration_count} on-site` +
+        noteBlock +
+        `\n\n🗺 *Google Maps Location*:\n${googleMapsUrl}\n\n` +
+        `🔗 *PCMC CivicWatch*: https://pcmc-civic-watch.vercel.app/`;
+
+      // Try creating watermarked image file for native Web Share API
+      let fileToShare: File | null = null;
+      try {
+        const stampedDataUrl = await createWatermarkedImage(latestPhoto || '', {
+          id: selectedHotspot.id,
+          category: selectedHotspot.category,
+          subTag: selectedHotspot.sub_tag,
+          areaName: selectedHotspot.area_name,
+          latitude: selectedHotspot.latitude,
+          longitude: selectedHotspot.longitude,
+          createdAt: selectedHotspot.created_at
+        });
+
+        if (stampedDataUrl) {
+          const res = await fetch(stampedDataUrl);
+          const blob = await res.blob();
+          fileToShare = new File([blob], `PCMC-CivicWatch-${selectedHotspot.id.substring(0, 8)}.jpg`, { type: 'image/jpeg' });
+        }
+      } catch (imgErr) {
+        console.warn('Failed to prepare watermarked image for share:', imgErr);
+      }
+
+      // Check native share support with file
+      if (fileToShare && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
+        try {
+          await navigator.share({
+            files: [fileToShare],
+            title: `PCMC CivicWatch - ${selectedHotspot.category}`,
+            text: whatsappShareText
+          });
+          return;
+        } catch (shareErr: unknown) {
+          if (shareErr instanceof Error && shareErr.name === 'AbortError') {
+            return;
+          }
+          console.warn('Navigator share error, falling back to WhatsApp link:', shareErr);
+        }
+      }
+
+      // Fallback: Desktop or browser without file share support
+      const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(
+        whatsappShareText + (latestPhoto ? `\n📸 *Photo Evidence*: ${latestPhoto}` : '')
+      )}`;
+      window.open(fallbackUrl, '_blank');
+    } catch (err) {
+      console.error('WhatsApp share general error:', err);
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
+  };
+
+  const handleSendSMS = () => {
+    if (!selectedHotspot) return;
+    const ward = getWardForArea(selectedHotspot.area_name, selectedHotspot.latitude, selectedHotspot.longitude);
+    const ticketShort = selectedHotspot.id.substring(0, 8);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${selectedHotspot.latitude},${selectedHotspot.longitude}`;
+
+    const conciseSmsText = language === 'mr'
+      ? `PCMC नागरी तक्रार #${ticketShort}:
+विषय: ${selectedHotspot.category} (${selectedHotspot.sub_tag})
+ठिकाण: ${selectedHotspot.area_name} [${ward.badge}, ${ward.zone}]
+नकाशा: ${googleMapsUrl}
+(सारथी नोंदणी नसल्यास कृपया आपले संपूर्ण नाव व पत्ता जोडावा.)`
+      : `PCMC Civic Grievance #${ticketShort}:
+Issue: ${selectedHotspot.category} (${selectedHotspot.sub_tag})
+Location: ${selectedHotspot.area_name} [${ward.badge}, ${ward.zone}]
+Map: ${googleMapsUrl}
+(If not registered with PCMC Sarathi, please append your Full Name & Address.)`;
+
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const smsDelimiter = isIOS ? '&' : '?';
+    const smsUri = `sms:9922501450${smsDelimiter}body=${encodeURIComponent(conciseSmsText)}`;
+    window.location.href = smsUri;
   };
 
   const filteredHotspots = hotspots.filter(h => {
@@ -760,9 +849,9 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                 </button>
               </div>
             ) : (
-              /* ACTION BUTTONS: ESCALATE TO PCMC (PRIMARY), FOLLOWED BY CLEARANCE & WHATSAPP */
-              <div className="space-y-2 pt-1">
-                {/* 1. ESCALATE TO PCMC OFFICIALS BUTTON (PRIMARY ACTION) */}
+              /* ACTION BUTTONS: ESCALATE TO PCMC (PRIMARY), FOLLOWED BY WHATSAPP NOTE, WHATSAPP & SMS, SARATHI NOTE, AND CLEARANCE */
+              <div className="space-y-2.5 pt-1">
+                {/* 1. ESCALATE TO PCMC OFFICIALS BUTTON (PRIMARY FULL-WIDTH ACTION) */}
                 <button
                   type="button"
                   onClick={() => setEscalateTargetHotspot(selectedHotspot)}
@@ -772,14 +861,102 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                   <span>{t.escalateEmail} (Ward Officer + Nodal Dept)</span>
                 </button>
 
-                {/* 2. CLEARANCE & WHATSAPP ROW (BELOW SEND EMAIL) */}
+                {/* ROW 1: OPTIONAL WHATSAPP PERSONAL NOTE INPUT */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="font-semibold flex items-center gap-1 text-slate-300">
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      {language === 'mr' ? 'WhatsApp टीप (पर्यायी):' : 'WhatsApp Note (Optional):'}
+                    </span>
+                    {personalNote && (
+                      <button
+                        type="button"
+                        onClick={() => setPersonalNote('')}
+                        className="text-[10px] text-slate-500 hover:text-slate-300"
+                      >
+                        {language === 'mr' ? 'साफ करा' : 'Clear'}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={personalNote}
+                    onChange={(e) => setPersonalNote(e.target.value)}
+                    placeholder={
+                      language === 'mr'
+                        ? 'सोसायटी ग्रुप / नगरसेवकांसाठी टीप जोडा (पर्यायी)...'
+                        : 'Add note for society group / corporator (optional)...'
+                    }
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const chip = language === 'mr' ? 'कृपया पुष्टी करा' : 'Please boost & verify';
+                        setPersonalNote(prev => prev ? `${prev} • ${chip}` : chip);
+                      }}
+                      className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 active:scale-95 transition-all"
+                    >
+                      + {language === 'mr' ? 'कृपया पुष्टी करा' : 'Please boost & verify'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const chip = language === 'mr' ? 'अनेक दिवस प्रलंबित' : 'Unresolved for days';
+                        setPersonalNote(prev => prev ? `${prev} • ${chip}` : chip);
+                      }}
+                      className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 active:scale-95 transition-all"
+                    >
+                      + {language === 'mr' ? 'अनेक दिवस प्रलंबित' : 'Unresolved for days'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* ROW 2: SIDE-BY-SIDE 2-COLUMN GRID (EQUAL WIDTH) */}
                 <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={isSharingWhatsApp}
+                    onClick={handleShareWhatsApp}
+                    className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  >
+                    {isSharingWhatsApp ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <MessageCircle className="w-3.5 h-3.5" />
+                    )}
+                    <span>{language === 'mr' ? '💬 WhatsApp वर पाठवा' : '💬 Share on WhatsApp'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendSMS}
+                    className="h-11 rounded-xl bg-[#111827] border border-cyan-500/40 hover:bg-cyan-950/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>📱 SMS PCMC (9922501450)</span>
+                  </button>
+                </div>
+
+                {/* ROW 3: SARATHI WHATSAPP AVAILABILITY CALLOUT */}
+                <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-300/80 leading-relaxed flex items-start gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    {language === 'mr'
+                      ? 'नोंद: PCMC ची सारथी हेल्पलाइन (9922501450) सध्या WhatsApp वर उपलब्ध नाही. अधिकृत तक्रारीसाठी वरील SMS (9922501450) किंवा ईमेल वापरा.'
+                      : 'Note: PCMC’s Sarathi helpline (9922501450) is currently unavailable on WhatsApp. Use SMS (9922501450) or Email for official PCMC logging.'}
+                  </span>
+                </div>
+
+                {/* ROW 4: REMAINING SECONDARY ACTIONS (CLEARANCE & CONTENT FLAG) */}
+                <div className="space-y-1.5 pt-0.5">
                   {selectedHotspot.status !== 'RESOLVED' ? (
                     <button
                       type="button"
                       disabled={!canClearHotspot}
                       onClick={() => setShowClearanceForm(true)}
-                      className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 ${
+                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 ${
                         canClearHotspot
                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 text-slate-950'
                           : 'bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -790,30 +967,20 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                       {t.markCleared}
                     </button>
                   ) : (
-                    <div className="py-2 px-2 text-center text-xs font-bold text-green-400 bg-green-950/40 border border-green-800 rounded-xl flex items-center justify-center gap-1">
+                    <div className="w-full py-2 px-2 text-center text-xs font-bold text-green-400 bg-green-950/40 border border-green-800 rounded-xl flex items-center justify-center gap-1">
                       ✓ {t.resolved}
                     </div>
                   )}
 
                   <button
                     type="button"
-                    onClick={handleShareWhatsApp}
-                    className="py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+                    onClick={() => setFlagTarget({ hotspotId: selectedHotspot.id })}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>WhatsApp</span>
+                    <Flag className="w-3.5 h-3.5 text-rose-400" />
+                    <span>{language === 'mr' ? 'आक्षेपार्ह फोटो / मजकुराची तक्रार करा' : 'Flag Inappropriate Content / Private Photo'}</span>
                   </button>
                 </div>
-
-                {/* 3. COMMUNITY CONTENT REPORT / FLAG BUTTON */}
-                <button
-                  type="button"
-                  onClick={() => setFlagTarget({ hotspotId: selectedHotspot.id })}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Flag className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{language === 'mr' ? 'आक्षेपार्ह फोटो / मजकुराची तक्रार करा' : 'Flag Inappropriate Content / Private Photo'}</span>
-                </button>
               </div>
             )}
           </div>
