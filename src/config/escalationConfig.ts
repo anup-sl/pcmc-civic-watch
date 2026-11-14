@@ -154,6 +154,78 @@ export const PCMC_ESCALATION_CONFIG = {
         "m.lonkar@pcmcindia.gov.in"
       ]
     },
+    GARDEN: {
+      display_name: "Trees, Parks & Public Gardens",
+      department: "Garden & Tree Authority Department",
+      sla_hours: 48,
+      merge_radius_meters: 15,
+      recurrence_window_days: 14,
+      primary_official: {
+        name: "Superintendent of Gardens",
+        role: "Tree Officer & Garden Department",
+        to_emails: [
+          "garden@pcmcindia.gov.in"
+        ],
+        phone: "020-67333333"
+      },
+      cc_initial: [
+        "sarathi@pcmcindia.gov.in",
+        "egov@pcmcindia.gov.in"
+      ],
+      cc_overdue_escalation: [
+        "commissioner@pcmcindia.gov.in",
+        "v.suryawanshi@pcmcindia.gov.in",
+        "m.lonkar@pcmcindia.gov.in"
+      ]
+    },
+    ANIMALS: {
+      display_name: "Stray Animals & Cattle Hazard",
+      department: "Veterinary & Animal Husbandry Department",
+      sla_hours: 48,
+      merge_radius_meters: 20,
+      recurrence_window_days: 14,
+      primary_official: {
+        name: "Chief Veterinary Officer",
+        role: "Veterinary & Animal Welfare Cell",
+        to_emails: [
+          "veterinary@pcmcindia.gov.in"
+        ],
+        phone: "020-67333333"
+      },
+      cc_initial: [
+        "sarathi@pcmcindia.gov.in",
+        "egov@pcmcindia.gov.in"
+      ],
+      cc_overdue_escalation: [
+        "commissioner@pcmcindia.gov.in",
+        "v.suryawanshi@pcmcindia.gov.in",
+        "m.lonkar@pcmcindia.gov.in"
+      ]
+    },
+    POLLUTION: {
+      display_name: "Air, Noise & Environmental Pollution",
+      department: "Environment & Pollution Control Cell",
+      sla_hours: 24,
+      merge_radius_meters: 25,
+      recurrence_window_days: 14,
+      primary_official: {
+        name: "Environment Officer",
+        role: "Pollution Control & Air Quality Cell",
+        to_emails: [
+          "environment@pcmcindia.gov.in"
+        ],
+        phone: "020-67333333"
+      },
+      cc_initial: [
+        "sarathi@pcmcindia.gov.in",
+        "egov@pcmcindia.gov.in"
+      ],
+      cc_overdue_escalation: [
+        "commissioner@pcmcindia.gov.in",
+        "v.suryawanshi@pcmcindia.gov.in",
+        "m.lonkar@pcmcindia.gov.in"
+      ]
+    },
     OTHER: {
       display_name: "PCMC Sarathi, E-Gov & Other Civic Issues",
       department: "E-Governance & Central Grievance Cell",
@@ -192,10 +264,13 @@ export type EscalationCategoryKey = keyof typeof PCMC_ESCALATION_CONFIG.categori
 
 export function getCategoryEscalationConfig(category: Category | string) {
   const norm = (category || 'Pothole').toUpperCase();
-  if (norm.includes('GARBAGE')) return PCMC_ESCALATION_CONFIG.categories.GARBAGE;
-  if (norm.includes('DRAINAGE') || norm.includes('WATER')) return PCMC_ESCALATION_CONFIG.categories.DRAINAGE;
+  if (norm.includes('GARBAGE') || norm.includes('WASTE')) return PCMC_ESCALATION_CONFIG.categories.GARBAGE;
+  if (norm.includes('DRAINAGE') || norm.includes('WATER') || norm.includes('GUTTER') || norm.includes('SEWAGE')) return PCMC_ESCALATION_CONFIG.categories.DRAINAGE;
   if (norm.includes('STREETLIGHT') || norm.includes('LIGHT') || norm.includes('ELECTRIC')) return PCMC_ESCALATION_CONFIG.categories.STREETLIGHT;
   if (norm.includes('ENCROACH') || norm.includes('HAWKER') || norm.includes('FOOTPATH')) return PCMC_ESCALATION_CONFIG.categories.ENCROACHMENT;
+  if (norm.includes('GARDEN') || norm.includes('TREE') || norm.includes('PARK')) return PCMC_ESCALATION_CONFIG.categories.GARDEN;
+  if (norm.includes('ANIMAL') || norm.includes('DOG') || norm.includes('CATTLE')) return PCMC_ESCALATION_CONFIG.categories.ANIMALS;
+  if (norm.includes('POLLUTION') || norm.includes('AIR') || norm.includes('NOISE') || norm.includes('SMOKE') || norm.includes('DUST')) return PCMC_ESCALATION_CONFIG.categories.POLLUTION;
   if (norm.includes('OTHER') || norm.includes('SARATHI') || norm.includes('EGOV') || norm.includes('PORTAL')) return PCMC_ESCALATION_CONFIG.categories.OTHER;
   return PCMC_ESCALATION_CONFIG.categories.POTHOLE;
 }

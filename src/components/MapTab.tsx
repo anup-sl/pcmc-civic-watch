@@ -123,9 +123,8 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
   // Filters
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
-  // User GPS & Test Mode
+  // User GPS Location (Strict 30m geofence enforced in production)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isTestMode, setIsTestMode] = useState<boolean>(true);
   const [isLocating, setIsLocating] = useState<boolean>(false);
 
   // Escalation Modal state
@@ -237,7 +236,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
     ));
   }, [selectedHotspot, userLocation]);
 
-  const canClearHotspot = isTestMode || (distanceToPin !== null && distanceToPin <= 30);
+  const canClearHotspot = distanceToPin !== null && distanceToPin <= 30;
 
   const handleTriggerAfterPhoto = () => {
     if (afterFileInputRef.current) {
@@ -270,6 +269,10 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
 
   const handleSubmitClearance = async () => {
     if (!selectedHotspot) return;
+    if (!canClearHotspot) {
+      setClearanceError(language === 'mr' ? 'समस्या निवारण पडताळणीसाठी ३० मीटर अंतरावर असणे अनिवार्य आहे.' : 'You must be within 30 meters of this issue location to verify clearance.');
+      return;
+    }
     if (!clearancePhotoBlob && !clearancePhotoPreview) {
       setClearanceError(language === 'mr' ? 'कृपया समस्येचे निराकरण झाल्याचा प्रत्यक्ष फोटो घ्या.' : 'Please take a live "After" photo to verify clearance.');
       return;
@@ -640,28 +643,41 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
               )}
             </div>
 
-            {/* Test Mode Toggle & Proximity Status */}
-            <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-300 font-medium">{language === 'mr' ? 'GPS अंतर:' : 'GPS Range:'}</span>
-                {distanceToPin !== null ? (
-                  <span className={`font-mono text-[11px] font-bold ${distanceToPin <= 30 ? 'text-green-400' : 'text-amber-400'}`}>
-                    {distanceToPin}{language === 'mr' ? 'मी अंतर' : 'm away'} {distanceToPin <= 30 ? (language === 'mr' ? '(३०मी मर्यादेत ✓)' : '(Within 30m ✓)') : (language === 'mr' ? '(३०मी मर्यादेबाहेर)' : '(Outside 30m)')}
+            {/* GPS Range Proximity Status Banner (Strict 30m Geofence Enforced) */}
+            <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800/80 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                    {language === 'mr' ? 'GPS अंतर:' : 'GPS Range:'}
                   </span>
-                ) : (
-                  <span className="text-slate-500 text-[10px]">{language === 'mr' ? 'GPS स्थान तपासत आहे...' : 'Checking device GPS...'}</span>
-                )}
+                  {distanceToPin !== null ? (
+                    <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded-full ${
+                      distanceToPin <= 30 
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {distanceToPin}{language === 'mr' ? 'मी अंतर ' : 'm away '}
+                      {distanceToPin <= 30 
+                        ? (language === 'mr' ? '(३०मी मर्यादेत ✓)' : '(Within 30m ✓)') 
+                        : (language === 'mr' ? '(३०मी मर्यादेबाहेर)' : '(Outside 30m)')}
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 text-[11px] flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
+                      {language === 'mr' ? 'GPS स्थान तपासत आहे...' : 'Checking device GPS...'}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isTestMode}
-                  onChange={(e) => setIsTestMode(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-cyan-500 rounded"
-                />
-                <span className="text-[10px] text-cyan-300 font-bold">{t.testModeLabel}</span>
-              </label>
+              {/* Outside 30m Helper Note */}
+              {distanceToPin !== null && distanceToPin > 30 && (
+                <p className="text-[10px] text-amber-300/80 leading-relaxed bg-amber-950/20 p-2 rounded-xl border border-amber-500/20">
+                  {language === 'mr'
+                    ? '⚠️ प्रत्यक्ष पाहणी व काम पूर्ण झाल्याचा फोटो जोडण्यासाठी समस्येच्या ३० मीटर अंतरावर असणे अनिवार्य आहे. आपण कुठूनही PCMC कडे ईमेलद्वारे तक्रार पाठवू शकता.'
+                    : '⚠️ On-site corroboration and "Verify Fixed" photo uploads require being within 30m of the issue. You can still escalate to PCMC via email from anywhere.'}
+                </p>
+              )}
             </div>
 
             {/* CLEARANCE WORKFLOW FORM (WHEN MARK AS CLEARED CLICKED) */}
@@ -768,7 +784,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 text-slate-950'
                           : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       }`}
-                      title={!canClearHotspot ? (language === 'mr' ? 'समस्येच्या ३०मी अंतरावर असणे आवश्यक (किंवा वरील टेस्ट मोड चालू करा)' : 'Must be within 30m of pin (or turn on Test Mode above)') : ''}
+                      title={!canClearHotspot ? (language === 'mr' ? 'समस्येच्या ३०मी अंतरावर असणे आवश्यक' : 'Must be within 30m of issue location') : ''}
                     >
                       <Check className="w-3.5 h-3.5" />
                       {t.markCleared}

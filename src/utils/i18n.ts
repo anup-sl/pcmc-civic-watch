@@ -61,9 +61,12 @@ export const TRANSLATIONS = {
       Garbage: "Garbage / Waste",
       Drainage: "Water / Drainage",
       Pothole: "Potholes / Roads",
-      Streetlight: "Streetlights / Electricity",
-      Encroachment: "Illegal Encroachment",
-      Other: "Other / E-Gov & Sarathi"
+      Streetlight: "Streetlights / Elec.",
+      Encroachment: "Encroachment",
+      Garden: "Trees / Parks",
+      Animals: "Stray Animals",
+      Pollution: "Air / Noise Pollution",
+      Other: "E-Gov / Sarathi"
     },
     feedbackTitle: "Share Feedback & Improve Portal",
     feedbackSub: "Help us make PCMC CivicWatch better for citizens"
@@ -126,11 +129,14 @@ export const TRANSLATIONS = {
     noPendingInWard: "या भागात एकही प्रलंबित समस्या नाही. नवीन समस्या दिसल्यास फोटो घ्या!",
     categories: {
       Garbage: "कचरा व्यवस्थापन",
-      Drainage: "पाणी व ड्रेनेज",
+      Drainage: "पाणी व सांडपाणी",
       Pothole: "खड्डे व रस्ते",
       Streetlight: "पथदिवे व वीज",
       Encroachment: "अनधिकृत अतिक्रमण",
-      Other: "इतर / ई-प्रशासन व सारथी"
+      Garden: "उद्यान व वृक्ष",
+      Animals: "भटके प्राणी",
+      Pollution: "हवा व ध्वनी प्रदूषण",
+      Other: "ई-प्रशासन व सारथी"
     },
     feedbackTitle: "अभिप्राय व सूचना पाठवा",
     feedbackSub: "नागरिक पोर्टल सुधारण्यासाठी आपल्या सूचना सांगा"

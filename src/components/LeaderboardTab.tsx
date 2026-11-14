@@ -222,7 +222,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
 
   // Grouped PCMC Presets by Zone for the Ward Picker
   const groupedPresetsByZone = useMemo(() => {
-    const zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D', 'Zone E', 'Zone F', 'Zone G', 'Zone H'];
+    const zones = ['Zone A', 'Zone B', 'Zone C', 'Zone D', 'Zone E', 'Zone F', 'Zone G', 'Zone H', 'Zone J', 'Zone L'];
     const groups: Record<string, typeof PCMC_PRESETS> = {};
 
     zones.forEach(z => { groups[z] = []; });
@@ -231,6 +231,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
       const query = wardSearchQuery.toLowerCase();
       const matches = 
         p.name.toLowerCase().includes(query) ||
+        (p.nameMr && p.nameMr.includes(query)) ||
         p.ward.toLowerCase().includes(query) ||
         p.zone.toLowerCase().includes(query);
 
@@ -351,45 +352,22 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
         </div>
       )}
 
-      {/* ELECTED CORPORATORS SECTION (When specific ward is selected) */}
-      {selectedWardFilter !== 'ALL' && activeWardInfo && (
-        <CorporatorSection
-          wardNo={activeWardInfo.wardNo}
-          wardLocality={language === 'mr' ? (activeWardInfo.marathiWardLabel || activeWardInfo.locality) : activeWardInfo.locality}
-          zone={language === 'mr' ? (activeWardInfo.marathiZone || activeWardInfo.zone) : activeWardInfo.zone}
-          language={language}
-          collapsible={true}
-          defaultExpanded={true}
-        />
-      )}
 
-      {/* GPS-DETECTED LOCAL CORPORATORS (When viewing All Wards) */}
-      {selectedWardFilter === 'ALL' && gpsWardInfo && (
-        <CorporatorSection
-          wardNo={gpsWardInfo.wardNo}
-          wardLocality={language === 'mr' ? (gpsWardInfo.marathiWardLabel || gpsWardInfo.locality) : gpsWardInfo.locality}
-          zone={language === 'mr' ? (gpsWardInfo.marathiZone || gpsWardInfo.zone) : gpsWardInfo.zone}
-          language={language}
-          collapsible={true}
-          defaultExpanded={false}
-          title={language === 'mr' ? `📍 तुमच्या परिसरातील नगरसेवक (${gpsWardInfo.marathiWardLabel || gpsWardInfo.locality})` : `📍 Corporators For Your Location (${gpsWardInfo.locality})`}
-        />
-      )}
 
       {/* ======================================================== */}
-      {/* 3. UNIFIED 3-COLUMN SUMMARY STRIP                        */}
+      {/* 3. UNIFIED 3-COLUMN SUMMARY STRIP (16px gap from filters) */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2.5 mt-4">
         {/* TOTAL OPEN */}
-        <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-2.5 shadow-md text-center relative overflow-hidden">
-          <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-amber-400 uppercase tracking-tight">
-            <Flame className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-amber-400 rounded-2xl p-3 shadow-md text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-amber-400 uppercase tracking-tight">
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
             <span>{t.totalOpen}</span>
           </div>
-          <div className="text-xl font-black text-white mt-0.5 leading-tight">
+          <div className="text-[28px] font-black text-white mt-1 leading-none font-mono tabular-nums">
             {summaryStrip.totalOpen}
           </div>
-          <p className="text-[9px] text-slate-400 mt-0.5">
+          <p className="text-[10px] text-slate-400 mt-1.5 truncate">
             {selectedWardFilter === 'ALL'
               ? (language === 'mr' ? 'शहर पातळी (PCMC)' : 'City-wide PCMC')
               : (language === 'mr' ? 'निवडलेल्या प्रभागात' : 'In selected ward')}
@@ -397,30 +375,30 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
         </div>
 
         {/* OVERDUE */}
-        <div className="bg-slate-900/90 border border-rose-500/40 rounded-2xl p-2.5 shadow-md text-center relative overflow-hidden ring-1 ring-rose-500/20">
-          <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-rose-400 uppercase tracking-tight">
-            <AlertTriangle className="w-3 h-3 text-rose-400" />
+        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-rose-500 rounded-2xl p-3 shadow-md text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-rose-400 uppercase tracking-tight">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
             <span>{t.overdue}</span>
           </div>
-          <div className="text-xl font-black text-rose-300 mt-0.5 leading-tight">
+          <div className="text-[28px] font-black text-rose-400 mt-1 leading-none font-mono tabular-nums">
             {summaryStrip.overdueCount}
           </div>
-          <p className="text-[9px] text-slate-400 mt-0.5">
-            {language === 'mr' ? 'मुदत उलटलेली' : 'Breached SLA'}
+          <p className="text-[10px] text-slate-400 mt-1.5 truncate">
+            {language === 'mr' ? 'मुदत संपलेली' : 'Breached SLA'}
           </p>
         </div>
 
         {/* RESOLVED */}
-        <div className="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-2.5 shadow-md text-center relative overflow-hidden">
-          <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-400 uppercase tracking-tight">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-emerald-400 rounded-2xl p-3 shadow-md text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-400 uppercase tracking-tight">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>{t.resolved}</span>
           </div>
-          <div className="text-xl font-black text-emerald-300 mt-0.5 leading-tight">
+          <div className="text-[28px] font-black text-emerald-400 mt-1 leading-none font-mono tabular-nums">
             {summaryStrip.resolvedCount}
           </div>
-          <p className="text-[9px] text-slate-400 mt-0.5">
-            {language === 'mr' ? 'दुरुस्त व प्रमाणित' : 'Fixed & verified'}
+          <p className="text-[10px] text-slate-400 mt-1.5 truncate">
+            {language === 'mr' ? 'निवारण झाले' : 'Fixed & verified'}
           </p>
         </div>
       </div>

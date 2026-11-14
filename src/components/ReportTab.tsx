@@ -15,21 +15,24 @@ import {
   Edit2,
   Search,
   ShieldAlert,
-  HelpCircle,
   Flag,
   Users,
   Building2,
   Phone,
   ExternalLink,
   Send,
-  X
+  X,
+  Trees,
+  PawPrint,
+  Wind,
+  Smartphone
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CATEGORIES } from '../types';
 import type { Category, Hotspot } from '../types';
 import { submitCivicReport, supabase, haversineDistanceMeters } from '../supabase';
 import type { SubmitReportResult } from '../supabase';
-import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation } from '../utils/geo';
+import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation, formatZoneDisplay } from '../utils/geo';
 import { getWardForArea } from '../utils/pcmcDirectory';
 import { FlagModal } from './FlagModal';
 import { CorporatorSection } from './CorporatorSection';
@@ -37,7 +40,7 @@ import { EscalateModal } from './EscalateModal';
 import { analyzeImageContent } from '../utils/contentModeration';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
-import { getSubTagsForCategory, getQuickPhrasesForCategory } from '../utils/issueTranslations';
+import { getSubTagsForCategory, getDynamicQuickPhrases } from '../utils/issueTranslations';
 import { getOfficialWardByNumber, getOfficialZoneByKey } from '../utils/pcmcOfficialWardZoneData';
 
 interface ReportTabProps {
@@ -118,7 +121,9 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
 
   const handleCategorySelect = (cat: Category) => {
     setSelectedCategory(cat);
-    setSelectedSubTag(CATEGORIES[cat].subTags[0]);
+    const subTags = getSubTagsForCategory(cat, language);
+    const defaultTag = language === 'mr' ? subTags[0].mr : subTags[0].en;
+    setSelectedSubTag(defaultTag);
   };
 
   const appendQuickPhrase = (phrase: string) => {
@@ -346,11 +351,11 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       />
 
       {/* ======================================================== */}
-      {/* 1. LOCALITY & LIVE GPS BAR (Responsive Layout)          */}
+      {/* 1. LOCALITY & LIVE GPS BAR (Strict 2-Line Clean Layout) */}
       {/* ======================================================== */}
       <div className="space-y-1.5 px-1">
-        {/* LINE 1: Location Name + Auto-locate GPS + Switch Ward */}
-        <div className="flex items-center justify-between gap-1.5 flex-wrap min-w-0">
+        {/* LINE 1: Location Name + Auto-locate GPS + Switch Ward (Strictly Single Row) */}
+        <div className="flex items-center justify-between gap-1.5 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
             {isEditingArea ? (
@@ -375,7 +380,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1 min-w-0">
                 <span className="font-semibold text-slate-100 text-xs sm:text-sm truncate">
                   {isGeocoding ? (language === 'mr' ? 'अचूक पत्ता शोधत आहे...' : 'Detecting street...') : areaName}
                 </span>
@@ -391,7 +396,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             )}
           </div>
 
-          {/* GPS Auto-locate and Switch Ward on line 1 */}
+          {/* GPS Auto-locate and Switch Ward strictly on line 1 */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -400,7 +405,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                 grabLiveGPS(true);
               }}
               disabled={isLocating}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0 whitespace-nowrap"
             >
               <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
               <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
@@ -409,15 +414,15 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             <button
               type="button"
               onClick={() => setShowLocationPicker(!showLocationPicker)}
-              className="text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-1 shrink-0"
+              className="text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-1 shrink-0 whitespace-nowrap"
             >
               {showLocationPicker ? t.closeWards : t.switchWard}
             </button>
           </div>
         </div>
 
-        {/* LINE 2: Corporators & Zone Office Info */}
-        <div className="flex items-center gap-1.5 flex-wrap text-xs pt-0.5">
+        {/* LINE 2: Corporators & Zone Office Info (Always on line 2) */}
+        <div className="flex items-center gap-2 pt-0.5">
           <button
             type="button"
             onClick={() => setShowCorporatorsModal(true)}
@@ -480,7 +485,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                 </div>
                 <div className="text-[9px] text-cyan-400 flex items-center justify-between mt-0.5">
                   <span>{language === 'mr' ? preset.ward.replace('Ward', 'प्रभाग') : preset.ward}</span>
-                  <span>{language === 'mr' ? preset.zone.replace('Zone', 'क्षेत्रीय') : preset.zone}</span>
+                  <span>{formatZoneDisplay(preset.zone, language)}</span>
                 </div>
               </button>
             ))}
@@ -676,12 +681,12 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          {/* CATEGORY ICON CARDS */}
+          {/* CATEGORY ICON CARDS (3x3 Grid) */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
               {t.categoryLabel}
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {(Object.keys(CATEGORIES) as Category[]).map((catKey) => {
                 const cat = CATEGORIES[catKey];
                 const isSelected = selectedCategory === catKey;
@@ -691,36 +696,36 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                     key={catKey}
                     type="button"
                     onClick={() => handleCategorySelect(catKey)}
-                    className={`relative p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    className={`relative p-2 rounded-2xl border text-left transition-all flex flex-col justify-between active:scale-[0.98] ${
                       isSelected
-                        ? 'bg-slate-800/95 border-cyan-500 ring-2 ring-cyan-500/30 shadow-lg'
-                        : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
+                        ? 'bg-[#111827] border-emerald-500 ring-2 ring-emerald-500/25 shadow-lg shadow-emerald-950/40'
+                        : 'bg-[#111827]/70 border-white/[0.07] hover:border-white/[0.15]'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center justify-between mb-2">
                       <div className={`p-1.5 rounded-xl ${cat.bgColor} ${cat.color}`}>
                         {catKey === 'Garbage' && <Trash2 className="w-4 h-4" />}
                         {catKey === 'Drainage' && <Droplets className="w-4 h-4" />}
                         {catKey === 'Pothole' && <AlertTriangle className="w-4 h-4" />}
                         {catKey === 'Streetlight' && <Lightbulb className="w-4 h-4" />}
                         {catKey === 'Encroachment' && <ShieldAlert className="w-4 h-4" />}
-                        {catKey === 'Other' && <HelpCircle className="w-4 h-4" />}
+                        {catKey === 'Garden' && <Trees className="w-4 h-4" />}
+                        {catKey === 'Animals' && <PawPrint className="w-4 h-4" />}
+                        {catKey === 'Pollution' && <Wind className="w-4 h-4" />}
+                        {catKey === 'Other' && <Smartphone className="w-4 h-4" />}
                       </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
-                        isSelected ? 'bg-cyan-950 text-cyan-300 border-cyan-700' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                        isSelected ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60' : 'bg-slate-950 text-slate-400 border-slate-800'
                       }`}>
-                        {cat.slaHours}h SLA
+                        {cat.slaHours}h
                       </span>
                     </div>
 
-                    <div>
-                      <div className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="font-bold text-[11px] sm:text-xs text-white flex items-center justify-between">
                         <span className="truncate">{t.categories[catKey] || cat.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-1" />}
+                        {isSelected && <Check className="w-3 h-3 text-emerald-400 shrink-0 ml-0.5" />}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
-                        {cat.description}
-                      </p>
                     </div>
                   </button>
                 );
@@ -805,14 +810,14 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-medium">{t.quickPhrases}</span>
               <div className="flex flex-wrap gap-1.5">
-                {getQuickPhrasesForCategory(selectedCategory, language).map((phrase) => (
+                {getDynamicQuickPhrases(selectedCategory, selectedSubTag, language).map((phrase) => (
                   <button
                     key={phrase}
                     type="button"
                     onClick={() => appendQuickPhrase(phrase)}
-                    className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-[10px] text-slate-300 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                    className="px-2 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-[10px] text-slate-300 hover:text-emerald-300 flex items-center gap-1 transition-colors active:scale-95"
                   >
-                    <Plus className="w-2.5 h-2.5 text-cyan-400" />
+                    <Plus className="w-2.5 h-2.5 text-emerald-400" />
                     <span>{phrase}</span>
                   </button>
                 ))}

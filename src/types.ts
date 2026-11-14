@@ -1,4 +1,13 @@
-export type Category = 'Garbage' | 'Drainage' | 'Pothole' | 'Streetlight' | 'Encroachment' | 'Other';
+export type Category = 
+  | 'Garbage' 
+  | 'Drainage' 
+  | 'Pothole' 
+  | 'Streetlight' 
+  | 'Encroachment' 
+  | 'Garden' 
+  | 'Animals' 
+  | 'Pollution' 
+  | 'Other';
 
 export type HotspotStatus = 'OPEN' | 'CHRONIC_REOPENED' | 'RESOLVED';
 
@@ -50,13 +59,12 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     bgColor: 'bg-amber-500/10 hover:bg-amber-500/20',
     borderColor: 'border-amber-500/40',
     subTags: [
-      'Overflowing Bin',
-      'Illegal Roadside Dumping',
-      'Construction Debris',
-      'Open Waste Burning',
-      'Dead Animal / Carcass',
-      'Uncleaned Public Urinal',
-      'Garden / Tree Waste',
+      'Overflowing Garbage Bin',
+      'Open Roadside Dumping',
+      'Dead Animal / Bio-Waste',
+      'Construction Debris (Malba)',
+      'Missed Door-to-Door Van',
+      'Burning of Garbage',
       'Other'
     ],
     description: 'Waste piling or illegal disposal'
@@ -69,15 +77,15 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     bgColor: 'bg-cyan-500/10 hover:bg-cyan-500/20',
     borderColor: 'border-cyan-500/40',
     subTags: [
-      'Clogged Stormwater Drain',
-      'Sewage Chamber Overflow',
-      'Missing / Broken Manhole Lid',
-      'Stagnant Water / Mosquitoes',
+      'Blocked / Overflowing Gutter',
+      'Open / Missing Manhole Cover',
       'Drinking Water Pipeline Leak',
-      'Open Drainage Pit Hazard',
+      'Sewage Mixing in Water',
+      'Waterlogging on Road',
+      'No Water Supply',
       'Other'
     ],
-    description: 'Blocked gutter or wastewater backup'
+    description: 'Blocked gutter, wastewater, or drinking water issue'
   },
   Pothole: {
     name: 'Pothole',
@@ -93,6 +101,7 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Multiple Consecutive Potholes',
       'Broken Paver Blocks',
       'Road Surface Subsidence',
+      'Damaged Speed Breaker',
       'Other'
     ],
     description: 'Road damage affecting vehicle safety'
@@ -105,16 +114,15 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     bgColor: 'bg-yellow-500/10 hover:bg-yellow-500/20',
     borderColor: 'border-yellow-500/40',
     subTags: [
-      'Completely Dark Stretch',
-      'Single Lamp Not Working',
+      'Streetlight Not Working',
+      'Dark Stretch (Multiple Lights Off)',
       'Flickering / Dim Streetlight',
-      'Exposed / Hanging Live Wires',
-      'Damaged / Tilted Electric Pole',
-      'High Mast Light Failure',
-      'Daytime Burning Light',
+      'Exposed Live Wires / Open Box',
+      'Tilted / Damaged Electric Pole',
+      'Light On During Daytime',
       'Other'
     ],
-    description: 'Non-functional street light or hazard'
+    description: 'Non-functional street light or electrical hazard'
   },
   Encroachment: {
     name: 'Encroachment',
@@ -124,35 +132,78 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
     bgColor: 'bg-purple-500/10 hover:bg-purple-500/20',
     borderColor: 'border-purple-500/40',
     subTags: [
-      'Footpath Blocked by Hawkers',
-      'Illegal Permanent / Tin Shed',
-      'Commercial Board / Banner on Road',
-      'Vehicles Occupying Walkway',
-      'Construction Material on Road',
-      'Nullah / Open Space Encroachment',
-      'Unauthorised Parking / Stand',
+      'Footpath Blocked by Stalls/Vendors',
+      'Illegal Roadside Shed / Extension',
+      'Abandoned Vehicles on Road',
+      'Illegal Hoarding / Banner',
+      'Road Blocked by Building Material',
       'Other'
     ],
     description: 'Footpath blocked or illegal public land occupation'
   },
+  Garden: {
+    name: 'Garden',
+    slaHours: 48,
+    iconName: 'Trees',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/10 hover:bg-emerald-500/20',
+    borderColor: 'border-emerald-500/40',
+    subTags: [
+      'Fallen Tree / Blocking Road',
+      'Dangerous Hanging Branches',
+      'Overgrown Weeds / Bushes',
+      'Broken Park Bench / Play Equipment',
+      'Park Lights / Gate Damaged',
+      'Other'
+    ],
+    description: 'Fallen trees, dangerous branches, or park maintenance'
+  },
+  Animals: {
+    name: 'Animals',
+    slaHours: 48,
+    iconName: 'PawPrint',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/10 hover:bg-orange-500/20',
+    borderColor: 'border-orange-500/40',
+    subTags: [
+      'Aggressive / Biting Stray Dogs',
+      'Injured / Sick Stray Animal',
+      'Stray Cattle Blocking Traffic',
+      'Dead Animal Removal Needed',
+      'Other'
+    ],
+    description: 'Stray dogs, injured animals, or cattle traffic hazards'
+  },
+  Pollution: {
+    name: 'Pollution',
+    slaHours: 24,
+    iconName: 'Wind',
+    color: 'text-indigo-400',
+    bgColor: 'bg-indigo-500/10 hover:bg-indigo-500/20',
+    borderColor: 'border-indigo-500/40',
+    subTags: [
+      'Open Garbage / Plastic Burning',
+      'RMC Plant / Construction Dust',
+      'Industrial Smoke / Chemical Odor',
+      'Late-Night Loudspeaker Noise',
+      'Other'
+    ],
+    description: 'Air pollution, plastic burning, dust, or excessive noise'
+  },
   Other: {
     name: 'Other',
     slaHours: 48,
-    iconName: 'HelpCircle',
+    iconName: 'Smartphone',
     color: 'text-teal-400',
     bgColor: 'bg-teal-500/10 hover:bg-teal-500/20',
     borderColor: 'border-teal-500/40',
     subTags: [
-      'PCMC Sarathi Portal Not Working',
-      'Property Tax Online Portal Error',
-      'Water Bill Payment Issue',
-      'Setu / Citizen Facility Center Issue',
-      'Noise / Loudspeaker Nuisance',
-      'Stray Animals / Cattle Hazard',
-      'Public Garden / Park Maintenance',
-      'General Civic Grievance / Other',
+      'Sarathi App / Portal Down',
+      'WhatsApp Bot Unresponsive',
+      'Complaint Closed Without Work',
+      'Property / Water Tax Portal Error',
       'Other'
     ],
-    description: 'Sarathi portal, e-governance, parks, or unlisted issue'
+    description: 'Sarathi portal, e-gov services, or unlisted issues'
   }
 };

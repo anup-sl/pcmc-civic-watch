@@ -9,6 +9,18 @@ export interface PCMCLocation {
   longitude: number;
 }
 
+export function formatZoneDisplay(zoneStr: string, language: Language = 'en'): string {
+  const zKey = zoneStr.replace(/^Zone\s*/i, '').replace(/^क्षेत्रीय\s*/i, '').trim();
+  if (language === 'mr') {
+    const marathiLetters: Record<string, string> = {
+      'A': 'अ', 'B': 'ब', 'C': 'क', 'D': 'ड', 'E': 'इ',
+      'F': 'फ', 'G': 'ग', 'H': 'ह', 'J': 'ज', 'L': 'ल'
+    };
+    return `${marathiLetters[zKey] || zKey} क्षेत्रीय`;
+  }
+  return `Zone ${zKey}`;
+}
+
 // Comprehensive PCMC Localities & Prabhag Hubs
 export const PCMC_PRESETS: PCMCLocation[] = [
   // Zone A: Nigdi, Pradhikaran, Akurdi, Chinchwad Station (Wards 13, 14, 15, 19)
