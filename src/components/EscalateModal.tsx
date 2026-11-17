@@ -142,6 +142,7 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close escalation modal"
             className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-slate-400 hover:text-white flex items-center justify-center transition-colors shrink-0 ml-2"
           >
             <X className="w-4 h-4" />

@@ -479,6 +479,7 @@ Map: ${googleMapsUrl}
             <button
               type="button"
               onClick={() => exportHotspotsToCSV(hotspots)}
+              aria-label="Download CSV Dossier"
               className="px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 text-[11px] font-bold flex items-center gap-1 shadow-md active:scale-95 hover:text-cyan-400"
               title="Download CSV Dossier"
             >
@@ -489,6 +490,7 @@ Map: ${googleMapsUrl}
             <button
               type="button"
               onClick={handleLocateMe}
+              aria-label={t.locateMe}
               className="p-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-cyan-400 hover:text-cyan-300 shadow-md active:scale-95"
               title={t.locateMe}
             >
@@ -497,6 +499,7 @@ Map: ${googleMapsUrl}
             <button
               type="button"
               onClick={loadHotspots}
+              aria-label="Refresh Hotspots"
               className="p-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white shadow-md active:scale-95"
               title="Refresh Hotspots"
             >
@@ -603,6 +606,7 @@ Map: ${googleMapsUrl}
               <button
                 type="button"
                 onClick={() => setSelectedHotspot(null)}
+                aria-label="Close details"
                 className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center shrink-0"
               >
                 <X className="w-4 h-4" />
@@ -710,6 +714,7 @@ Map: ${googleMapsUrl}
                             <button
                               type="button"
                               onClick={() => setFlagTarget({ reportId: report.id, hotspotId: selectedHotspot.id })}
+                              aria-label={language === 'mr' ? 'आक्षेपार्ह किंवा खाजगी फोटोची तक्रार करा' : 'Flag inappropriate or private image'}
                               className="text-[10px] text-slate-400 hover:text-rose-400 shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800"
                               title={language === 'mr' ? 'आक्षेपार्ह किंवा खाजगी फोटोची तक्रार करा' : 'Flag inappropriate or private image'}
                             >
@@ -848,6 +853,7 @@ Map: ${googleMapsUrl}
                 <button
                   type="button"
                   onClick={() => setEscalateTargetHotspot(selectedHotspot)}
+                  aria-label={`${t.escalateEmail} (Ward Officer + Nodal Dept)`}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
@@ -860,6 +866,7 @@ Map: ${googleMapsUrl}
                     type="button"
                     disabled={isSharingWhatsApp}
                     onClick={handleShareWhatsApp}
+                    aria-label="Share via WhatsApp"
                     className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
                   >
                     {isSharingWhatsApp ? (
@@ -873,6 +880,7 @@ Map: ${googleMapsUrl}
                   <button
                     type="button"
                     onClick={handleSendSMS}
+                    aria-label="Send via SMS"
                     className="h-11 rounded-xl bg-[#111827] border border-cyan-500/40 hover:bg-cyan-950/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />

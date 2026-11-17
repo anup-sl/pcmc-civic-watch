@@ -126,6 +126,7 @@ export function App() {
             <button
               type="button"
               onClick={() => setShowFeedbackModal(true)}
+              aria-label={language === 'mr' ? 'अभिप्राय आणि सूचना' : 'Share Feedback / Suggestions'}
               className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-pink-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
               title="Share Feedback / Suggestions"
             >
@@ -137,6 +138,7 @@ export function App() {
             <button
               type="button"
               onClick={() => setShowDirectoryModal(true)}
+              aria-label={language === 'mr' ? 'PCMC हेल्पलाईन आणि प्रभाग डिरेक्टरी' : 'PCMC Helplines and Ward Directory'}
               className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
               title={language === 'mr' ? 'PCMC हेल्पलाईन आणि प्रभाग' : 'PCMC Helplines & Wards'}
             >

@@ -101,6 +101,7 @@ export const FlagModal = ({ language, onClose, reportId, hotspotId }: FlagModalP
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close flag modal"
             className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
