@@ -7,6 +7,8 @@ import { DirectoryModal } from './components/DirectoryModal';
 import { FeedbackModal } from './components/FeedbackModal';
 import { ModeratorPortal } from './components/ModeratorPortal';
 import { InstallPrompt } from './components/InstallPrompt';
+import { OfflineBanner } from './components/OfflineBanner';
+import { triggerHaptic } from './utils/haptics';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
 import { PhoneCall, MessageSquareHeart } from 'lucide-react';
@@ -70,6 +72,7 @@ export function App() {
   }, []);
 
   const toggleLanguage = () => {
+    triggerHaptic('selection');
     const nextLang: Language = language === 'en' ? 'mr' : 'en';
     setLanguage(nextLang);
     try {
@@ -125,24 +128,30 @@ export function App() {
             {/* Feedback button */}
             <button
               type="button"
-              onClick={() => setShowFeedbackModal(true)}
+              onClick={() => {
+                triggerHaptic('light');
+                setShowFeedbackModal(true);
+              }}
               aria-label={language === 'mr' ? 'अभिप्राय आणि सूचना' : 'Share Feedback / Suggestions'}
-              className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-pink-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
+              className="min-h-[44px] min-w-[44px] p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-pink-400 text-xs font-semibold flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all"
               title="Share Feedback / Suggestions"
             >
-              <MessageSquareHeart className="w-3.5 h-3.5 text-pink-400" />
+              <MessageSquareHeart className="w-4 h-4 text-pink-400" />
               <span className="hidden sm:inline text-[11px]">{language === 'mr' ? 'अभिप्राय' : 'Feedback'}</span>
             </button>
 
             {/* Help / Directory button */}
             <button
               type="button"
-              onClick={() => setShowDirectoryModal(true)}
+              onClick={() => {
+                triggerHaptic('light');
+                setShowDirectoryModal(true);
+              }}
               aria-label={language === 'mr' ? 'PCMC हेल्पलाईन आणि प्रभाग डिरेक्टरी' : 'PCMC Helplines and Ward Directory'}
-              className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all"
+              className="min-h-[44px] min-w-[44px] p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 text-xs font-semibold flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all"
               title={language === 'mr' ? 'PCMC हेल्पलाईन आणि प्रभाग' : 'PCMC Helplines & Wards'}
             >
-              <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
+              <PhoneCall className="w-4 h-4 text-cyan-400" />
               <span className="hidden sm:inline text-[11px]">{language === 'mr' ? 'मदत' : 'Help'}</span>
             </button>
 
@@ -151,14 +160,14 @@ export function App() {
               type="button"
               onClick={toggleLanguage}
               aria-label="Toggle Language"
-              className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-0.5 text-xs font-bold shadow-xs active:scale-95 transition-all"
+              className="min-h-[44px] flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-bold shadow-xs active:scale-95 transition-all"
             >
-              <span className={`px-2 py-1 rounded-lg transition-all text-[11px] ${
+              <span className={`px-2.5 py-1.5 rounded-lg transition-all text-[11px] ${
                 language === 'en' ? 'bg-cyan-500 text-slate-950 font-black shadow-xs' : 'text-slate-400'
               }`}>
                 EN
               </span>
-              <span className={`px-2 py-1 rounded-lg transition-all text-[11px] ${
+              <span className={`px-2.5 py-1.5 rounded-lg transition-all text-[11px] ${
                 language === 'mr' ? 'bg-cyan-500 text-slate-950 font-black shadow-xs' : 'text-slate-400'
               }`}>
                 मराठी
@@ -167,6 +176,9 @@ export function App() {
           </div>
         </div>
       </header>
+
+      {/* Offline Status Indicator Banner */}
+      <OfflineBanner language={language} />
 
       {/* Main Tab Content Area */}
       <main className="flex-1 w-full max-w-lg mx-auto overflow-x-hidden">
@@ -194,13 +206,14 @@ export function App() {
       </main>
 
       {/* PWA Install to Home Screen Banner & iOS Guide */}
-      <InstallPrompt language={language} />
+      <InstallPrompt language={language} isSheetOpen={Boolean(selectedHotspotId || showDirectoryModal || showFeedbackModal || showModeratorPortal)} />
 
       {/* 3 Bottom Navigation Tabs */}
       <BottomNav
         activeTab={activeTab}
         language={language}
         onTabChange={(tab) => {
+          triggerHaptic('selection');
           setActiveTab(tab);
           if (tab !== 'map') setSelectedHotspotId(null);
         }}

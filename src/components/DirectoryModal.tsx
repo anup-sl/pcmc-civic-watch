@@ -52,9 +52,9 @@ export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: Direct
             type="button"
             onClick={onClose}
             aria-label="Close directory modal"
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+            className="min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center active:scale-95 transition-all"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 

@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { triggerHaptic } from '../utils/haptics';
+import { ImageLightbox } from './ImageLightbox';
 import { 
   Camera, 
   MapPin, 
@@ -52,11 +54,13 @@ interface ReportTabProps {
 
 export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const categorySectionRef = useRef<HTMLDivElement>(null);
   const t = TRANSLATIONS[language];
 
   // Form states
   const [photoBlob, setPhotoBlob] = useState<Blob | File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<Category>('Pothole');
   const [selectedSubTag, setSelectedSubTag] = useState<string>(CATEGORIES.Pothole.subTags[0]);
   const [notes, setNotes] = useState<string>('');
@@ -120,6 +124,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   }, [initialCoords]);
 
   const handleCategorySelect = (cat: Category) => {
+    triggerHaptic('selection');
     setSelectedCategory(cat);
     const subTags = getSubTagsForCategory(cat, language);
     const defaultTag = language === 'mr' ? subTags[0].mr : subTags[0].en;
@@ -200,6 +205,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   }, [latitude, longitude, selectedCategory]);
 
   const triggerCameraSnap = () => {
+    triggerHaptic('medium');
     if (!isManualArea) {
       grabLiveGPS();
     }
@@ -211,13 +217,25 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      triggerHaptic('light');
       setIsScanningImage(true);
       setImageScanError(null);
       setErrorMessage(null);
 
+      // Create instant preview for immediate thumbnail feedback
+      const initialUrl = URL.createObjectURL(file);
+      setPhotoPreviewUrl(initialUrl);
+      setPhotoBlob(file);
+
+      // Smooth-scroll to next step (Category selection)
+      setTimeout(() => {
+        categorySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 250);
+
       try {
         const mod = await analyzeImageContent(file);
         if (!mod.isAllowed) {
+          triggerHaptic('warning');
           setImageScanError({
             reason: mod.reason,
             marathiReason: mod.marathiReason
@@ -229,14 +247,11 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         }
 
         setPhotoBlob(file);
-        const url = URL.createObjectURL(file);
-        setPhotoPreviewUrl(url);
         setSubmissionResult(null);
+        triggerHaptic('success');
       } catch (err) {
         console.warn('Image moderation scan notice:', err);
         setPhotoBlob(file);
-        const url = URL.createObjectURL(file);
-        setPhotoPreviewUrl(url);
       } finally {
         setIsScanningImage(false);
       }
@@ -245,6 +260,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    triggerHaptic('heavy');
     if (imageScanError) {
       setErrorMessage(language === 'mr' ? imageScanError.marathiReason : imageScanError.reason);
       return;
@@ -290,6 +306,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       });
 
       setSubmissionResult(result);
+      triggerHaptic('success');
 
       confetti({
         particleCount: 80,
@@ -401,11 +418,12 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             <button
               type="button"
               onClick={() => {
+                triggerHaptic('light');
                 setIsManualArea(false);
                 grabLiveGPS(true);
               }}
               disabled={isLocating}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0 whitespace-nowrap"
+              className="min-h-[44px] flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0 whitespace-nowrap"
             >
               <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
               <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
@@ -413,8 +431,11 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
 
             <button
               type="button"
-              onClick={() => setShowLocationPicker(!showLocationPicker)}
-              className="text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-1 shrink-0 whitespace-nowrap"
+              onClick={() => {
+                triggerHaptic('light');
+                setShowLocationPicker(!showLocationPicker);
+              }}
+              className="min-h-[44px] flex items-center text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-2 shrink-0 whitespace-nowrap active:scale-95 transition-all"
             >
               {showLocationPicker ? t.closeWards : t.switchWard}
             </button>
@@ -552,13 +573,30 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         </button>
       ) : (
         /* PHOTO PREVIEW & RETAKE */
-        <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 aspect-video shadow-lg">
+        <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 aspect-video shadow-lg group">
           <img
             src={photoPreviewUrl}
             alt="Snapped civic issue"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
+            onClick={() => {
+              triggerHaptic('light');
+              setIsPhotoLightboxOpen(true);
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-black/30 pointer-events-none" />
+
+          {/* Tap to expand hint */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              setIsPhotoLightboxOpen(true);
+            }}
+            className="absolute top-3 left-3 bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs font-medium flex items-center gap-1 shadow-md active:scale-95"
+          >
+            <Search className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Tap to View</span>
+          </button>
 
           <button
             type="button"
@@ -682,7 +720,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           {/* CATEGORY ICON CARDS (3x3 Grid) */}
-          <div className="space-y-2">
+          <div ref={categorySectionRef} className="space-y-2 scroll-mt-20">
             <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
               {t.categoryLabel}
             </label>
@@ -1169,6 +1207,15 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           }
           language={language}
           onClose={() => setEscalateHotspot(null)}
+        />
+      )}
+      {/* Full-Screen Image Lightbox */}
+      {isPhotoLightboxOpen && photoPreviewUrl && (
+        <ImageLightbox
+          imageUrl={photoPreviewUrl}
+          caption={selectedCategory}
+          subCaption={areaName}
+          onClose={() => setIsPhotoLightboxOpen(false)}
         />
       )}
     </div>

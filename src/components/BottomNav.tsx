@@ -21,7 +21,7 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
           type="button"
           onClick={() => onTabChange('map')}
           aria-label={t.mapTab}
-          className={`flex flex-col items-center justify-center gap-1 w-20 py-1 transition-all ${
+          className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 w-20 py-1 transition-all ${
             activeTab === 'map'
               ? 'text-emerald-400 font-bold scale-105'
               : 'text-slate-400 hover:text-slate-200'
@@ -63,7 +63,7 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
           type="button"
           onClick={() => onTabChange('leaderboard')}
           aria-label={t.leaderboardTab}
-          className={`flex flex-col items-center justify-center gap-1 w-20 py-1 transition-all ${
+          className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 w-20 py-1 transition-all ${
             activeTab === 'leaderboard'
               ? 'text-emerald-400 font-bold scale-105'
               : 'text-slate-400 hover:text-slate-200'

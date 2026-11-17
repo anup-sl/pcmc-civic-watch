@@ -9,9 +9,10 @@ interface BeforeInstallPromptEvent extends Event {
 
 interface InstallPromptProps {
   language: Language;
+  isSheetOpen?: boolean;
 }
 
-export const InstallPrompt = ({ language }: InstallPromptProps) => {
+export const InstallPrompt = ({ language, isSheetOpen = false }: InstallPromptProps) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState<boolean>(false);
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
@@ -84,7 +85,7 @@ export const InstallPrompt = ({ language }: InstallPromptProps) => {
     sessionStorage.setItem('pcmc_pwa_prompt_dismissed', 'true');
   };
 
-  if (isStandalone || isDismissed) {
+  if (isStandalone || isDismissed || isSheetOpen) {
     return null;
   }
 
@@ -98,7 +99,7 @@ export const InstallPrompt = ({ language }: InstallPromptProps) => {
       {/* Sleek Floating Install Banner */}
       <aside 
         aria-label="Install PCMC CivicWatch App"
-        className="fixed bottom-20 left-3 right-3 z-30 max-w-lg mx-auto bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-2xl p-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-3 duration-200"
+        className="fixed bottom-[76px] left-3 right-3 z-30 max-w-lg mx-auto bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-2xl p-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-3 duration-200"
       >
         <div className="flex items-center justify-between gap-3">
           {/* App Icon & Details */}
@@ -141,10 +142,11 @@ export const InstallPrompt = ({ language }: InstallPromptProps) => {
             <button
               type="button"
               onClick={handleDismiss}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 transition-colors"
+              aria-label="Dismiss banner"
+              className="min-h-[44px] min-w-[44px] p-2 rounded-xl text-slate-500 hover:text-slate-300 transition-colors flex items-center justify-center active:scale-95"
               title="Dismiss"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -172,9 +174,10 @@ export const InstallPrompt = ({ language }: InstallPromptProps) => {
               <button
                 type="button"
                 onClick={() => setShowIOSModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+                aria-label="Close modal"
+                className="min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 

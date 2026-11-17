@@ -534,7 +534,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                       {Object.entries(area.categories).map(([cat, cnt]) => (
                         <span
                           key={cat}
-                          className="px-1.5 py-0.2 rounded bg-slate-950/80 border border-slate-800 text-slate-400"
+                          className="px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700 text-slate-200 font-medium"
                         >
                           {cat === 'Garbage' ? '🗑️' : cat === 'Drainage' ? '💧' : cat === 'Streetlight' ? '💡' : cat === 'Encroachment' ? '🛑' : '⚠️'} {cat} ({cnt})
                         </span>

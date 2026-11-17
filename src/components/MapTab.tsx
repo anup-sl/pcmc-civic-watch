@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useMemo, type ChangeEvent } from 'react';
+import { triggerHaptic } from '../utils/haptics';
+import { ImageLightbox } from './ImageLightbox';
 import { 
   MapPin, 
   RefreshCw, 
@@ -146,7 +148,14 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
   // WhatsApp & SMS Action States
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
 
+  // Lightbox & Pull-to-refresh states
+  const [activeLightboxImage, setActiveLightboxImage] = useState<{ url: string; caption?: string; subCaption?: string } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [pullStartY, setPullStartY] = useState<number | null>(null);
+  const [pullDistance, setPullDistance] = useState<number>(0);
+
   const loadHotspots = async () => {
+    setIsRefreshing(true);
     try {
       const { data, error } = await supabase
         .from('hotspots')
@@ -155,8 +164,12 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
 
       if (error) throw error;
       setHotspots((data as Hotspot[]) || []);
+      triggerHaptic('success');
     } catch (err) {
-      console.error('Error fetching hotspots:', err);
+      console.error('Failed to load hotspots:', err);
+    } finally {
+      setIsRefreshing(false);
+      setPullDistance(0);
     }
   };
 
@@ -207,6 +220,7 @@ export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
   }, [selectedHotspotId, hotspots]);
 
   const handleSelectHotspot = async (h: Hotspot) => {
+    triggerHaptic('selection');
     setSelectedHotspot(h);
     setMapCenter([h.latitude, h.longitude]);
     setMapZoom(16);
@@ -422,9 +436,45 @@ Map: ${googleMapsUrl}
   });
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col bg-slate-950">
+    <div 
+      className="relative w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col bg-slate-950"
+      onTouchStart={(e) => {
+        if (!selectedHotspot && e.touches.length === 1) {
+          setPullStartY(e.touches[0].clientY);
+        }
+      }}
+      onTouchMove={(e) => {
+        if (pullStartY !== null && !selectedHotspot && e.touches.length === 1) {
+          const currentY = e.touches[0].clientY;
+          const dist = currentY - pullStartY;
+          if (dist > 0 && dist < 120) {
+            setPullDistance(dist);
+          }
+        }
+      }}
+      onTouchEnd={() => {
+        if (pullDistance > 60) {
+          triggerHaptic('medium');
+          loadHotspots();
+        } else {
+          setPullDistance(0);
+        }
+        setPullStartY(null);
+      }}
+    >
       {/* 1. TOP CATEGORY FILTER PILLS */}
       <div className="absolute top-3 left-3 right-3 z-[1000] max-w-lg mx-auto flex flex-col gap-2 pointer-events-auto">
+        {/* Pull-to-refresh Visual Indicator Banner */}
+        {(pullDistance > 0 || isRefreshing) && (
+          <div
+            className="flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-200 text-xs font-semibold shadow-lg backdrop-blur-md transition-all duration-150"
+            style={{ transform: `scale(${Math.min(1.05, 0.8 + pullDistance / 100)})` }}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing Hotspots...' : 'Pull down to refresh'}</span>
+          </div>
+        )}
+
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-1 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl">
           <button
             type="button"
@@ -489,21 +539,27 @@ Map: ${googleMapsUrl}
 
             <button
               type="button"
-              onClick={handleLocateMe}
+              onClick={() => {
+                triggerHaptic('light');
+                handleLocateMe();
+              }}
               aria-label={t.locateMe}
-              className="p-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-cyan-400 hover:text-cyan-300 shadow-md active:scale-95"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-cyan-400 hover:text-cyan-300 shadow-md active:scale-95"
               title={t.locateMe}
             >
               <Crosshair className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
             </button>
             <button
               type="button"
-              onClick={loadHotspots}
+              onClick={() => {
+                triggerHaptic('light');
+                loadHotspots();
+              }}
               aria-label="Refresh Hotspots"
-              className="p-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white shadow-md active:scale-95"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white shadow-md active:scale-95"
               title="Refresh Hotspots"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
             </button>
           </div>
         </div>
@@ -571,8 +627,8 @@ Map: ${googleMapsUrl}
 
       {/* 3. BOTTOM DRAWER FOR SELECTED HOTSPOT */}
       {selectedHotspot && (
-        <div className="absolute bottom-16 left-0 right-0 z-[1050] max-w-lg mx-auto px-3 pb-2 animate-in slide-in-from-bottom-5 duration-200">
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-h-[75vh] overflow-y-auto space-y-3.5 no-scrollbar">
+        <div className="absolute bottom-16 left-0 right-0 z-[1050] max-w-lg mx-auto px-3 pb-safe animate-in slide-in-from-bottom-5 duration-200">
+          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-h-[75vh] overflow-y-auto space-y-3.5 no-scrollbar pb-6">
             {/* Drawer Header */}
             <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
               <div className="flex items-center gap-2.5">
@@ -587,9 +643,9 @@ Map: ${googleMapsUrl}
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-white">{t.categories[selectedHotspot.category] || selectedHotspot.category}</h3>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                      selectedHotspot.status === 'OPEN' ? 'bg-red-500/20 text-red-400 border-red-500/40' :
-                      selectedHotspot.status === 'CHRONIC_REOPENED' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' :
-                      'bg-green-500/20 text-green-400 border-green-500/40'
+                      selectedHotspot.status === 'OPEN' ? 'bg-red-500/20 text-red-300 border-red-500/40' :
+                      selectedHotspot.status === 'CHRONIC_REOPENED' ? 'bg-purple-500/20 text-purple-200 border-purple-500/40' :
+                      'bg-green-500/20 text-green-300 border-green-500/40'
                     }`}>
                       {selectedHotspot.status === 'OPEN' ? `🔴 ${t.open}` :
                        selectedHotspot.status === 'CHRONIC_REOPENED' ? `🟣 ${t.chronic}` :
@@ -607,9 +663,9 @@ Map: ${googleMapsUrl}
                 type="button"
                 onClick={() => setSelectedHotspot(null)}
                 aria-label="Close details"
-                className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center shrink-0"
+                className="min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center shrink-0 active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -683,12 +739,24 @@ Map: ${googleMapsUrl}
                         key={report.id}
                         className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-950/80 border border-slate-800/90 text-xs"
                       >
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-slate-700 bg-black">
+                        <div 
+                          className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-slate-700 bg-black cursor-pointer group"
+                          onClick={() => {
+                            triggerHaptic('light');
+                            setActiveLightboxImage({
+                              url: report.photo_url,
+                              caption: `${selectedHotspot.category} (${report.report_type})`,
+                              subCaption: `${selectedHotspot.area_name} • ${dateStr}`
+                            });
+                          }}
+                          title="Tap to view full screen"
+                        >
                           <img
                             src={report.photo_url}
                             alt={`Evidence ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                         </div>
 
                         <div className="flex-1 min-w-0 space-y-0.5">
@@ -953,6 +1021,16 @@ Map: ${googleMapsUrl}
           reportId={flagTarget.reportId}
           hotspotId={flagTarget.hotspotId}
           onClose={() => setFlagTarget(null)}
+        />
+      )}
+
+      {/* 6. FULL-SCREEN IMAGE LIGHTBOX WITH PINCH/TAP ZOOM & DISMISS */}
+      {activeLightboxImage && (
+        <ImageLightbox
+          imageUrl={activeLightboxImage.url}
+          caption={activeLightboxImage.caption}
+          subCaption={activeLightboxImage.subCaption}
+          onClose={() => setActiveLightboxImage(null)}
         />
       )}
     </div>
