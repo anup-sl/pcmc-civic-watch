@@ -36,6 +36,7 @@ import { submitCivicReport, supabase, haversineDistanceMeters } from '../supabas
 import type { SubmitReportResult } from '../supabase';
 import { PCMC_PRESETS, PCMC_CENTER, reverseGeocodeLocation, formatZoneDisplay } from '../utils/geo';
 import { getWardForArea } from '../utils/pcmcDirectory';
+import { stampGPSWatermark } from '../utils/watermark';
 import { FlagModal } from './FlagModal';
 import { CorporatorSection } from './CorporatorSection';
 import { EscalateModal } from './EscalateModal';
@@ -58,6 +59,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const t = TRANSLATIONS[language];
 
   // Form states
+  const [rawPhotoFile, setRawPhotoFile] = useState<File | Blob | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [isPhotoLightboxOpen, setIsPhotoLightboxOpen] = useState<boolean>(false);
@@ -221,6 +223,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       setIsScanningImage(true);
       setImageScanError(null);
       setErrorMessage(null);
+      setRawPhotoFile(file);
 
       // Create instant preview for immediate thumbnail feedback
       const initialUrl = URL.createObjectURL(file);
@@ -241,12 +244,30 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             marathiReason: mod.marathiReason
           });
           setPhotoBlob(null);
+          setRawPhotoFile(null);
           setPhotoPreviewUrl(null);
           if (fileInputRef.current) fileInputRef.current.value = '';
           return;
         }
 
-        setPhotoBlob(file);
+        // Apply official GPS watermark banner onto image pixels
+        try {
+          const wardInfo = getWardForArea(areaName, latitude, longitude);
+          const watermarked = await stampGPSWatermark(file, {
+            area: 'Pimpri Chinchwad, Maharashtra',
+            address: areaName.trim() || 'Pimpri Chinchwad, Maharashtra',
+            ward: wardInfo?.wardLabel ? `Ward: ${wardInfo.wardLabel}` : undefined,
+            latitude,
+            longitude,
+            timestamp: new Date()
+          });
+          setPhotoBlob(watermarked.blob);
+          setPhotoPreviewUrl(watermarked.dataUrl);
+        } catch (watermarkErr) {
+          console.warn('GPS watermark generation notice:', watermarkErr);
+          setPhotoBlob(file);
+        }
+
         setSubmissionResult(null);
         triggerHaptic('success');
       } catch (err) {
@@ -283,7 +304,23 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
 
     try {
       let finalBlob = photoBlob;
-      if (!finalBlob && photoPreviewUrl) {
+      const sourceForWatermark = rawPhotoFile || photoBlob;
+      if (sourceForWatermark) {
+        try {
+          const wardInfo = getWardForArea(areaName, latitude, longitude);
+          const watermarked = await stampGPSWatermark(sourceForWatermark, {
+            area: 'Pimpri Chinchwad, Maharashtra',
+            address: areaName.trim() || 'Pimpri Chinchwad, Maharashtra',
+            ward: wardInfo?.wardLabel ? `Ward: ${wardInfo.wardLabel}` : undefined,
+            latitude,
+            longitude,
+            timestamp: new Date()
+          });
+          finalBlob = watermarked.blob;
+        } catch (wmErr) {
+          console.warn('Watermark stamp during submission notice:', wmErr);
+        }
+      } else if (!finalBlob && photoPreviewUrl) {
         const res = await fetch(photoPreviewUrl);
         finalBlob = await res.blob();
       }
@@ -323,6 +360,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   };
 
   const resetForm = () => {
+    setRawPhotoFile(null);
     setPhotoBlob(null);
     setPhotoPreviewUrl(null);
     setImageScanError(null);

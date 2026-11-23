@@ -27,7 +27,7 @@ import { PCMC_CENTER, getSLAStatus } from '../utils/geo';
 import { EscalateModal } from './EscalateModal';
 import { FlagModal } from './FlagModal';
 import { exportHotspotsToCSV } from '../utils/csvExport';
-import { createWatermarkedImage } from '../utils/watermark';
+import { createWatermarkedImage, stampGPSWatermark } from '../utils/watermark';
 import { getWardForArea } from '../utils/pcmcDirectory';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
@@ -411,12 +411,30 @@ export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTab
     }
   };
 
-  const handleAfterPhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleAfterPhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setClearanceError(null);
+      if (selectedHotspot) {
+        try {
+          const wardInfo = getWardForArea(selectedHotspot.area_name, selectedHotspot.latitude, selectedHotspot.longitude);
+          const watermarked = await stampGPSWatermark(file, {
+            area: 'Pimpri Chinchwad, Maharashtra',
+            address: selectedHotspot.area_name || 'Pimpri Chinchwad, Maharashtra',
+            ward: wardInfo?.wardLabel ? `Ward: ${wardInfo.wardLabel}` : undefined,
+            latitude: userLocation ? userLocation.lat : selectedHotspot.latitude,
+            longitude: userLocation ? userLocation.lng : selectedHotspot.longitude,
+            timestamp: new Date()
+          });
+          setClearancePhotoBlob(watermarked.blob);
+          setClearancePhotoPreview(watermarked.dataUrl);
+          return;
+        } catch (err) {
+          console.warn('Clearance watermark error:', err);
+        }
+      }
       setClearancePhotoBlob(file);
       setClearancePhotoPreview(URL.createObjectURL(file));
-      setClearanceError(null);
     }
   };
 
@@ -424,7 +442,26 @@ export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTab
     const sample = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop';
     fetch(sample)
       .then(res => res.blob())
-      .then(blob => {
+      .then(async blob => {
+        if (selectedHotspot) {
+          try {
+            const wardInfo = getWardForArea(selectedHotspot.area_name, selectedHotspot.latitude, selectedHotspot.longitude);
+            const watermarked = await stampGPSWatermark(blob, {
+              area: 'Pimpri Chinchwad, Maharashtra',
+              address: selectedHotspot.area_name || 'Pimpri Chinchwad, Maharashtra',
+              ward: wardInfo?.wardLabel ? `Ward: ${wardInfo.wardLabel}` : undefined,
+              latitude: userLocation ? userLocation.lat : selectedHotspot.latitude,
+              longitude: userLocation ? userLocation.lng : selectedHotspot.longitude,
+              timestamp: new Date()
+            });
+            setClearancePhotoBlob(watermarked.blob);
+            setClearancePhotoPreview(watermarked.dataUrl);
+            setClearanceError(null);
+            return;
+          } catch (err) {
+            console.warn('Sample watermark error:', err);
+          }
+        }
         setClearancePhotoBlob(blob);
         setClearancePhotoPreview(sample);
         setClearanceError(null);
