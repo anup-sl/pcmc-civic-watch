@@ -437,7 +437,7 @@ Map: ${googleMapsUrl}
 
   return (
     <div 
-      className="relative w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col bg-slate-950"
+      className="relative w-full h-[calc(100vh-64px)] md:h-[calc(100vh-58px)] overflow-hidden flex flex-col bg-slate-950"
       onTouchStart={(e) => {
         if (!selectedHotspot && e.touches.length === 1) {
           setPullStartY(e.touches[0].clientY);
@@ -463,7 +463,7 @@ Map: ${googleMapsUrl}
       }}
     >
       {/* 1. TOP CATEGORY FILTER PILLS */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] max-w-lg mx-auto flex flex-col gap-2 pointer-events-auto">
+      <div className="absolute top-3 left-3 right-3 z-[1000] max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2 pointer-events-auto">
         {/* Pull-to-refresh Visual Indicator Banner */}
         {(pullDistance > 0 || isRefreshing) && (
           <div
@@ -625,10 +625,10 @@ Map: ${googleMapsUrl}
         onChange={handleAfterPhotoChange}
       />
 
-      {/* 3. BOTTOM DRAWER FOR SELECTED HOTSPOT */}
+      {/* 3. BOTTOM DRAWER / SIDE PANEL FOR SELECTED HOTSPOT */}
       {selectedHotspot && (
-        <div className="absolute bottom-16 left-0 right-0 z-[1050] max-w-lg mx-auto px-3 pb-safe animate-in slide-in-from-bottom-5 duration-200">
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-h-[75vh] overflow-y-auto space-y-3.5 no-scrollbar pb-6">
+        <div className="absolute bottom-16 md:bottom-6 left-0 right-0 md:left-6 md:right-auto md:top-20 z-[1050] max-w-lg md:max-w-md lg:max-w-lg mx-auto md:mx-0 px-3 md:px-0 pb-safe animate-in slide-in-from-bottom-5 md:slide-in-from-left-5 duration-200 pointer-events-auto">
+          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-h-[75vh] md:max-h-[calc(100vh-104px)] overflow-y-auto space-y-3.5 no-scrollbar pb-6">
             {/* Drawer Header */}
             <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
               <div className="flex items-center gap-2.5">

@@ -36,7 +36,7 @@ export const DirectoryModal = ({ language, onClose, initialWardNo = 16 }: Direct
 
   return (
     <div className="fixed inset-0 z-[1200] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl no-scrollbar">
+      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg md:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl no-scrollbar">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">

@@ -10,7 +10,7 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { triggerHaptic } from './utils/haptics';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
-import { PhoneCall, MessageSquareHeart } from 'lucide-react';
+import { PhoneCall, MessageSquareHeart, Map, Trophy } from 'lucide-react';
 import { getWardForArea } from './utils/pcmcDirectory';
 
 export function App() {
@@ -91,7 +91,7 @@ export function App() {
     <div className="min-h-screen bg-[#090D16] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       {/* Sticky Top Header with Brand & Bilingual Switcher */}
       <header className="sticky top-0 z-40 bg-[#090D16]/90 backdrop-blur-md border-b border-white/[0.07] header-safe-top">
-        <div className="max-w-lg mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-2.5 min-w-0">
             <div 
@@ -115,6 +115,43 @@ export function App() {
               </p>
             </div>
           </div>
+
+          {/* Desktop Navigation Switcher (Hidden on Mobile) */}
+          <nav className="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1 shadow-inner">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                setActiveTab('map');
+              }}
+              aria-label={t.mapTab}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'map'
+                  ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Map className="w-4 h-4" />
+              <span>{t.mapTab}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                setActiveTab('leaderboard');
+                setSelectedHotspotId(null);
+              }}
+              aria-label={t.leaderboardTab}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'leaderboard'
+                  ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Trophy className="w-4 h-4" />
+              <span>{t.leaderboardTab}</span>
+            </button>
+          </nav>
 
           {/* Right Header Controls: Directory Pill & EN | मराठी Toggle */}
           <div className="flex items-center gap-1.5 shrink-0">
@@ -174,7 +211,7 @@ export function App() {
       <OfflineBanner language={language} />
 
       {/* Main Tab Content Area */}
-      <main className="flex-1 w-full max-w-lg mx-auto overflow-x-hidden">
+      <main className="flex-1 w-full flex flex-col min-h-0 overflow-x-hidden">
         {activeTab === 'map' && (
           <MapTab
             language={language}

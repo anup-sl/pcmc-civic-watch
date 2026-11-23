@@ -99,7 +99,7 @@ export const InstallPrompt = ({ language, isSheetOpen = false }: InstallPromptPr
       {/* Sleek Floating Install Banner */}
       <aside 
         aria-label="Install PCMC CivicWatch App"
-        className="fixed bottom-[76px] left-3 right-3 z-30 max-w-lg mx-auto bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-2xl p-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-3 duration-200"
+        className="fixed bottom-[76px] md:bottom-6 left-3 right-3 md:left-auto md:right-6 z-30 max-w-lg md:max-w-sm mx-auto md:mx-0 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-2xl p-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-3 duration-200"
       >
         <div className="flex items-center justify-between gap-3">
           {/* App Icon & Details */}

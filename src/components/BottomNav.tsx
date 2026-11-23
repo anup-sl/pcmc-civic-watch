@@ -14,7 +14,7 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
   const t = TRANSLATIONS[language];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#090D16]/90 backdrop-blur-2xl border-t border-white/[0.08] pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#090D16]/90 backdrop-blur-2xl border-t border-white/[0.08] pb-safe md:hidden">
       <div className="max-w-lg mx-auto px-6 h-16 flex items-center justify-around">
         {/* MAP TAB */}
         <button

@@ -244,7 +244,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
   }, [wardSearchQuery]);
 
   return (
-    <div className="flex flex-col min-h-full pb-28 pt-2 px-4 max-w-lg mx-auto w-full space-y-3.5">
+    <div className="flex flex-col min-h-full pb-28 md:pb-12 pt-3 px-4 sm:px-6 max-w-lg md:max-w-4xl lg:max-w-5xl mx-auto w-full space-y-4">
       {/* ======================================================== */}
       {/* 1. TOP HEADER & EXPORT ACTIONS                           */}
       {/* ======================================================== */}
