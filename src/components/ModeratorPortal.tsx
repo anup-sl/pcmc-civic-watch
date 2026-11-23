@@ -56,6 +56,7 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Check existing session auth
   useEffect(() => {
@@ -82,7 +83,10 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
       const q = await fetchModerationQueue();
       setQueue(q);
 
-      const { data: hData } = await supabase.from('hotspots').select('*').order('created_at', { ascending: false });
+      const { data: hData } = await supabase
+        .from('hotspots')
+        .select('*, reports(id, photo_url, report_type, created_at, notes)')
+        .order('created_at', { ascending: false });
       if (hData) setAllHotspots(hData as Hotspot[]);
 
       // Load user feedback from Supabase + localStorage cache
@@ -204,25 +208,25 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
+        className="w-full max-w-3xl bg-[#090D16] border border-slate-700/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0 gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 flex-wrap">
                 <span>CivicWatch Moderator Desk</span>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-800">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-800 shrink-0">
                   ADMIN ONLY
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-400 truncate">
                 Review flagged reports, remove violating uploads, and enforce safety guidelines
               </p>
             </div>
@@ -298,7 +302,7 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
           /* AUTHENTICATED MODERATOR DESK */
           <div className="flex-1 flex flex-col min-h-0 pt-3 space-y-3">
             {/* Tab switchers */}
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2 shrink-0">
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-2 shrink-0 overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setActiveTab('queue')}
@@ -463,50 +467,102 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
 
             {/* TAB CONTENT: ALL LIVE HOTSPOTS QUICK MANAGER */}
             {activeTab === 'hotspots' && (
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
                 {allHotspots.length === 0 ? (
                   <div className="py-12 text-center text-xs text-slate-500">
                     No active hotspots in database.
                   </div>
                 ) : (
-                  allHotspots.map((h) => (
-                    <div
-                      key={h.id}
-                      className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white truncate">{h.category}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
-                            {h.sub_tag}
-                          </span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                            h.status === 'OPEN' ? 'bg-amber-950 text-amber-300' :
-                            h.status === 'CHRONIC_REOPENED' ? 'bg-purple-950 text-purple-300' :
-                            'bg-emerald-950 text-emerald-300'
-                          }`}>
-                            {h.status}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-                          <span>{h.area_name}</span>
-                          <span>•</span>
-                          <span className="font-mono text-slate-500">{h.corroboration_count} citizen votes</span>
-                        </p>
-                      </div>
+                  allHotspots.map((h) => {
+                    const reports = h.reports || [];
+                    const photoUrl = reports.length > 0
+                      ? (reports[reports.length - 1].photo_url || reports[0].photo_url)
+                      : null;
 
-                      <button
-                        type="button"
-                        disabled={actionInProgress === h.id}
-                        onClick={() => handleDeleteHotspotDirect(h.id)}
-                        className="p-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-white transition-colors shrink-0"
-                        title="Delete entire hotspot"
+                    return (
+                      <div
+                        key={h.id}
+                        className="p-2.5 sm:p-3 rounded-2xl bg-slate-950/80 border border-slate-800/90 hover:border-slate-700/80 flex items-center justify-between gap-3 text-xs transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Issue Evidence Photo Thumbnail */}
+                          <div 
+                            onClick={() => photoUrl && setPreviewImage(photoUrl)}
+                            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-slate-700/80 bg-black flex items-center justify-center relative ${
+                              photoUrl ? 'cursor-pointer hover:opacity-90 group' : ''
+                            }`}
+                            title={photoUrl ? 'Click to inspect full photo' : 'No photo uploaded'}
+                          >
+                            {photoUrl ? (
+                              <>
+                                <img
+                                  src={photoUrl}
+                                  alt={h.category}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <Eye className="w-4 h-4 text-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center p-1">
+                                <span className="text-base sm:text-lg block leading-none">
+                                  {h.category === 'Garbage' ? '🗑️' :
+                                   h.category === 'Pothole' ? '🕳️' :
+                                   h.category === 'Drainage' ? '🚰' :
+                                   h.category === 'Streetlight' ? '💡' :
+                                   h.category === 'Encroachment' ? '🚧' : '📍'}
+                                </span>
+                                <span className="text-[9px] text-slate-500 font-mono block mt-0.5">No photo</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Issue Details & Badges */}
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-extrabold text-white text-xs sm:text-sm truncate">
+                                {h.category}
+                              </span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700/80 font-medium">
+                                {h.sub_tag}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                                h.status === 'OPEN' ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60' :
+                                h.status === 'CHRONIC_REOPENED' ? 'bg-purple-950/80 text-purple-300 border border-purple-800/60' :
+                                'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60'
+                              }`}>
+                                {h.status}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500">
+                                #{h.id.substring(0, 8)}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                              <span className="truncate">{h.area_name}</span>
+                              <span>•</span>
+                              <span className="font-mono text-cyan-400 shrink-0">{h.corroboration_count} votes</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <button
+                          type="button"
+                          disabled={actionInProgress === h.id}
+                          onClick={() => handleDeleteHotspotDirect(h.id)}
+                          className="p-2 sm:p-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-white transition-all active:scale-95 shrink-0"
+                          title="Delete entire hotspot"
+                          aria-label={`Delete hotspot #${h.id.substring(0, 8)}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -608,6 +664,40 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
           </div>
         )}
       </div>
+
+      {/* Full-Screen Evidence Inspection Lightbox */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[1200] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative max-w-xl w-full bg-[#090D16] border border-white/[0.12] rounded-2xl p-3.5 space-y-3 shadow-2xl" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <span className="text-xs font-bold text-white">
+                Inspecting Issue Photographic Evidence
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-white transition-colors"
+                aria-label="Close photo preview"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative rounded-xl overflow-hidden bg-black border border-white/[0.05]">
+              <img
+                src={previewImage}
+                alt="Full resolution evidence"
+                className="w-full max-h-[75vh] object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
