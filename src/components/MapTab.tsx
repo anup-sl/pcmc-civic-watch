@@ -6,7 +6,6 @@ import {
   RefreshCw, 
   Crosshair, 
   X, 
-  Flame, 
   Check, 
   Clock, 
   Camera, 
@@ -15,14 +14,15 @@ import {
   Flag,
   MessageSquare,
   MessageCircle,
-  Info
+  Info,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Hotspot, Report, Category } from '../types';
 import { CATEGORIES } from '../types';
-import { supabase, haversineDistanceMeters, submitClearanceReport, corroborateHotspot } from '../supabase';
-import { hasUserCorroborated, recordUserCorroboration } from '../utils/corroborationStorage';
+import { supabase, haversineDistanceMeters, submitClearanceReport } from '../supabase';
 import { PCMC_CENTER, getSLAStatus } from '../utils/geo';
 import { EscalateModal } from './EscalateModal';
 import { FlagModal } from './FlagModal';
@@ -45,6 +45,38 @@ function MapController({ center, zoom }: { center: [number, number]; zoom?: numb
     map.setView(center, zoom || map.getZoom(), { animate: true });
   }, [center, zoom, map]);
   return null;
+}
+
+function MapZoomControls() {
+  const map = useMap();
+  return (
+    <div className="leaflet-bottom leaflet-right !mb-24 md:!mb-8 !mr-4 z-[400] flex flex-col gap-2 pointer-events-auto">
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic('light');
+          map.zoomIn();
+        }}
+        aria-label="Zoom In"
+        className="w-10 h-10 rounded-xl bg-slate-900/95 hover:bg-slate-800 active:bg-slate-700 border border-slate-700/80 text-white font-bold flex items-center justify-center shadow-lg active:scale-95 transition-all group"
+        title="Zoom In"
+      >
+        <Plus className="w-5 h-5 text-cyan-400 group-hover:text-cyan-300" />
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic('light');
+          map.zoomOut();
+        }}
+        aria-label="Zoom Out"
+        className="w-10 h-10 rounded-xl bg-slate-900/95 hover:bg-slate-800 active:bg-slate-700 border border-slate-700/80 text-white font-bold flex items-center justify-center shadow-lg active:scale-95 transition-all group"
+        title="Zoom Out"
+      >
+        <Minus className="w-5 h-5 text-cyan-400 group-hover:text-cyan-300" />
+      </button>
+    </div>
+  );
 }
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -239,45 +271,6 @@ export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTab
 
   // WhatsApp & SMS Action States
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
-
-  // Corroboration state (+1)
-  const [corroboratingId, setCorroboratingId] = useState<string | null>(null);
-  const [corroboratedIds, setCorroboratedIds] = useState<Set<string>>(() => new Set());
-
-  const isHotspotCorroborated = selectedHotspot 
-    ? (corroboratedIds.has(selectedHotspot.id) || hasUserCorroborated(selectedHotspot.id))
-    : false;
-
-  const handleCorroborate = async () => {
-    if (!selectedHotspot || corroboratingId || isHotspotCorroborated) return;
-    const targetId = selectedHotspot.id;
-    setCorroboratingId(targetId);
-    triggerHaptic('medium');
-
-    // Optimistic UI count increment
-    const currentCount = selectedHotspot.corroboration_count || 1;
-    const nextCount = currentCount + 1;
-    setSelectedHotspot(prev => prev && prev.id === targetId ? { ...prev, corroboration_count: nextCount } : prev);
-    setHotspots(prev => prev.map(h => h.id === targetId ? { ...h, corroboration_count: nextCount } : h));
-    recordUserCorroboration(targetId);
-    setCorroboratedIds(prev => new Set(prev).add(targetId));
-
-    try {
-      const res = await corroborateHotspot({
-        hotspotId: targetId,
-        currentCount
-      });
-      triggerHaptic('success');
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-      if (res.report) {
-        setReports(prev => [...prev, res.report!]);
-      }
-    } catch (err) {
-      console.error('Failed to corroborate hotspot:', err);
-    } finally {
-      setCorroboratingId(null);
-    }
-  };
 
   // Lightbox & Pull-to-refresh states
   const [activeLightboxImage, setActiveLightboxImage] = useState<{ url: string; caption?: string; subCaption?: string } | null>(null);
@@ -756,6 +749,7 @@ Map: ${googleMapsUrl}
           className="w-full h-full"
         >
           <MapController center={mapCenter} zoom={mapZoom} />
+          <MapZoomControls />
 
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -959,24 +953,14 @@ Map: ${googleMapsUrl}
               );
             })()}
 
-            {/* Counts: Corroborations & Recurrences */}
-            <div className="grid grid-cols-2 gap-2 text-center text-xs">
-              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">{t.corroborations}</span>
-                <span className="font-black text-sm text-cyan-400 flex items-center justify-center gap-1 mt-0.5">
-                  <Flame className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                  {selectedHotspot.corroboration_count} {language === 'mr' ? 'नागरिकांची पुष्टी' : 'Verified'}
-                </span>
-              </div>
-
-              <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">{t.recurrenceCount}</span>
-                <span className="font-black text-sm text-purple-300 mt-0.5 block">
-                  {selectedHotspot.recurrence_count > 0
-                    ? (language === 'mr' ? `${selectedHotspot.recurrence_count} वेळा पुन्हा उघडले` : `${selectedHotspot.recurrence_count}x Reopened`)
-                    : (language === 'mr' ? 'प्राथमिक (०)' : 'Initial (0)')}
-                </span>
-              </div>
+            {/* Recurrence Count Banner */}
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 text-xs flex justify-between items-center">
+              <span className="text-slate-400">{t.recurrenceCount}:</span>
+              <span className="font-bold text-slate-200">
+                {selectedHotspot.recurrence_count > 0
+                  ? (language === 'mr' ? `${selectedHotspot.recurrence_count} वेळा पुन्हा उघडले` : `${selectedHotspot.recurrence_count}x Reopened`)
+                  : (language === 'mr' ? 'प्राथमिक (०)' : 'Initial (0)')}
+              </span>
             </div>
 
             {/* Photo Timeline from Reports */}
@@ -1235,39 +1219,8 @@ Map: ${googleMapsUrl}
                   </span>
                 </div>
 
-                {/* ROW 3: CITIZEN ACTIONS: CORROBORATE (+1), MARK CLEARED & REPORT NEARBY */}
+                {/* ROW 3: CITIZEN ACTIONS: MARK CLEARED & REPORT NEARBY */}
                 <div className="space-y-1.5 pt-0.5">
-                  {/* Corroborate / Still an issue (+1) Button */}
-                  {selectedHotspot.status !== 'RESOLVED' && (
-                    <button
-                      type="button"
-                      disabled={isHotspotCorroborated || corroboratingId === selectedHotspot.id}
-                      onClick={handleCorroborate}
-                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 ${
-                        isHotspotCorroborated
-                          ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 cursor-default'
-                          : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-900/30'
-                      }`}
-                    >
-                      {corroboratingId === selectedHotspot.id ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>{t.corroborating || 'Recording +1...'}</span>
-                        </>
-                      ) : isHotspotCorroborated ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{t.alreadyCorroborated || 'You verified this (+1)'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Flame className="w-3.5 h-3.5 text-amber-300" />
-                          <span>{t.stillAnIssue || 'Still an issue (+1)'}</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-
                   {onSnapAtLocation && (
                     <button
                       type="button"

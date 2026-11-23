@@ -150,58 +150,118 @@ export async function stampGPSWatermark(
   imageSource: File | Blob | string,
   options: GPSWatermarkOptions
 ): Promise<StampedWatermarkResult> {
-  return new Promise((resolve, reject) => {
-    let resolvedSrc = '';
-    let objectUrlToRevoke: string | null = null;
+  let resolvedBlob: Blob | null = null;
+  let objectUrlToRevoke: string | null = null;
+  let bitmapToClose: ImageBitmap | null = null;
 
+  try {
     if (imageSource instanceof Blob) {
-      resolvedSrc = URL.createObjectURL(imageSource);
+      resolvedBlob = imageSource;
+    } else if (typeof imageSource === 'string' && imageSource.startsWith('data:')) {
+      try {
+        const parts = imageSource.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        resolvedBlob = new Blob([u8arr], { type: mime });
+      } catch {
+        // fallback to string URL
+      }
+    }
+
+    let drawable: CanvasImageSource | null = null;
+    let width = 1200;
+    let height = 900;
+
+  // Use createImageBitmap with EXIF auto-orientation when available
+  if (typeof createImageBitmap === 'function' && resolvedBlob) {
+    try {
+      const bitmap = await createImageBitmap(resolvedBlob, { imageOrientation: 'from-image' });
+      bitmapToClose = bitmap;
+      drawable = bitmap;
+      width = bitmap.width;
+      height = bitmap.height;
+    } catch (e) {
+      console.warn('createImageBitmap failed, falling back to Image element', e);
+    }
+  }
+
+  if (!drawable) {
+    let resolvedSrc = '';
+    if (resolvedBlob) {
+      resolvedSrc = URL.createObjectURL(resolvedBlob);
       objectUrlToRevoke = resolvedSrc;
     } else if (typeof imageSource === 'string') {
       resolvedSrc = imageSource;
     }
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.crossOrigin = 'anonymous';
+      el.onload = () => resolve(el);
+      el.onerror = (e) => reject(e);
+      el.src = resolvedSrc;
+    });
 
-    img.onload = () => {
+    if (typeof createImageBitmap === 'function') {
       try {
-        const canvas = document.createElement('canvas');
-        const width = img.naturalWidth || 1200;
-        const height = img.naturalHeight || 900;
-        canvas.width = width;
-        canvas.height = height;
+        const bitmap = await createImageBitmap(img, { imageOrientation: 'from-image' });
+        bitmapToClose = bitmap;
+        drawable = bitmap;
+        width = bitmap.width;
+        height = bitmap.height;
+      } catch {
+        drawable = img;
+        width = img.naturalWidth || 1200;
+        height = img.naturalHeight || 900;
+      }
+    } else {
+      drawable = img;
+      width = img.naturalWidth || 1200;
+      height = img.naturalHeight || 900;
+    }
+  }
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Canvas context unavailable');
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
 
-        // 1. Draw base photo
-        ctx.drawImage(img, 0, 0, width, height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context unavailable');
 
-        // 2. Banner geometry
-        const scale = Math.max(0.7, Math.min(2.5, width / 1100));
-        const mapSize = Math.max(64, Math.round(76 * scale));
-        const padX = Math.round(18 * scale);
-        const padY = Math.round(14 * scale);
-        const bannerHeight = Math.max(mapSize + padY * 2, Math.round(135 * scale));
-        const bannerY = height - bannerHeight;
+      // 1. Draw base photo upright
+      ctx.drawImage(drawable!, 0, 0, width, height);
 
-        // 3. Dark semi-transparent overlay (rgba(10, 15, 30, 0.88))
-        ctx.fillStyle = 'rgba(10, 15, 30, 0.88)';
-        ctx.fillRect(0, bannerY, width, bannerHeight);
+      // 2. Banner geometry
+      const scale = Math.max(0.7, Math.min(2.5, width / 1100));
+      const mapSize = Math.max(64, Math.round(76 * scale));
+      const padX = Math.round(18 * scale);
+      const padY = Math.round(14 * scale);
+      const bannerHeight = Math.max(mapSize + padY * 2, Math.round(135 * scale));
+      const bannerY = height - bannerHeight;
 
-        // Top cyan highlight line
-        ctx.fillStyle = '#06b6d4';
-        ctx.fillRect(0, bannerY, width, Math.max(2, Math.round(2.5 * scale)));
+      // 3. Dark semi-transparent overlay (rgba(10, 15, 30, 0.88))
+      ctx.fillStyle = 'rgba(10, 15, 30, 0.88)';
+      ctx.fillRect(0, bannerY, width, bannerHeight);
 
-        // 4. Mini Map Box (Left)
-        const mapX = padX;
-        const mapY = bannerY + (bannerHeight - mapSize) / 2;
-        drawMiniMapBox(ctx, mapX, mapY, mapSize);
+      // Top cyan highlight line
+      ctx.fillStyle = '#06b6d4';
+      ctx.fillRect(0, bannerY, width, Math.max(2, Math.round(2.5 * scale)));
 
-        // 5. Metadata (Right, text stack)
-        const textX = mapX + mapSize + Math.round(16 * scale);
-        const maxTextWidth = width - textX - padX;
+      // 4. Mini Map Box (Left)
+      const mapX = padX;
+      const mapY = bannerY + (bannerHeight - mapSize) / 2;
+      drawMiniMapBox(ctx, mapX, mapY, mapSize);
+
+      // 5. Metadata (Right, text stack)
+      const textX = mapX + mapSize + Math.round(16 * scale);
+      const maxTextWidth = width - textX - padX;
 
         const fontHeader = Math.max(14, Math.round(16 * scale));
         const fontAddress = Math.max(12, Math.round(13.5 * scale));
@@ -261,6 +321,9 @@ export async function stampGPSWatermark(
         // 6. Convert canvas to permanent JPEG Blob & DataURL
         canvas.toBlob(
           (blob) => {
+            if (bitmapToClose) {
+              try { bitmapToClose.close(); } catch {}
+            }
             if (objectUrlToRevoke) {
               try { URL.revokeObjectURL(objectUrlToRevoke); } catch {}
             }
@@ -279,22 +342,24 @@ export async function stampGPSWatermark(
           0.92
         );
       } catch (err) {
+        if (bitmapToClose) {
+          try { bitmapToClose.close(); } catch {}
+        }
         if (objectUrlToRevoke) {
           try { URL.revokeObjectURL(objectUrlToRevoke); } catch {}
         }
         reject(err);
       }
-    };
-
-    img.onerror = () => {
-      if (objectUrlToRevoke) {
-        try { URL.revokeObjectURL(objectUrlToRevoke); } catch {}
-      }
-      reject(new Error('Failed to load image for watermarking'));
-    };
-
-    img.src = resolvedSrc;
-  });
+    });
+  } catch (err) {
+    if (bitmapToClose) {
+      try { bitmapToClose.close(); } catch {}
+    }
+    if (objectUrlToRevoke) {
+      try { URL.revokeObjectURL(objectUrlToRevoke); } catch {}
+    }
+    throw err;
+  }
 }
 
 /**

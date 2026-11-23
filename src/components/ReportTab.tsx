@@ -724,35 +724,62 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             </div>
           </div>
 
-          <div className="space-y-2 pt-2">
+          {/* PROMINENT OFFICIAL ESCALATION CALLOUT: SEND EMAIL TO PCMC */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/70 via-orange-950/50 to-slate-900 border-2 border-amber-500/70 shadow-xl shadow-amber-950/40 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center shrink-0 mt-0.5 text-amber-400">
+                <Send className="w-4 h-4 animate-bounce" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400 text-slate-950">
+                    {language === 'mr' ? 'महत्त्वाचे पुढील पाऊल' : 'Action Required'}
+                  </span>
+                  <span className="text-xs font-bold text-amber-200">
+                    {language === 'mr' ? 'अधिकृत ईमेल पाठवणे आवश्यक' : 'Official Escalation'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-100/90 leading-snug">
+                  {language === 'mr'
+                    ? 'आपला फोटो नोंदवला गेला आहे! PCMC अधिकाऱ्यांकडून थेट कारवाई सुरू करण्यासाठी खालील बटण दाबून अधिकृत ईमेल पाठवा.'
+                    : 'Photo logged! To initiate official municipal action, click below to dispatch this verified dossier directly to PCMC grievance officers.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('medium');
+                setEscalateHotspot(submissionResult.hotspot);
+              }}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 active:scale-95 transition-all ring-2 ring-amber-400/80 animate-pulse hover:animate-none"
+            >
+              <Send className="w-4 h-4 text-slate-950 fill-slate-950" />
+              <span>{language === 'mr' ? 'PCMC ला त्वरित ईमेल पाठवा (अधिकृत तक्रार)' : 'Send Email to PCMC Now (Official Complaint)'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-2 pt-1">
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => onNavigateToMap(submissionResult.hotspot.id)}
-                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
+                className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >
-                <MapPin className="w-3.5 h-3.5" />
+                <MapPin className="w-3.5 h-3.5 text-cyan-400" />
                 <span>{language === 'mr' ? 'नकाशावर पहा' : 'View on Map'}</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setEscalateHotspot(submissionResult.hotspot)}
-                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-orange-500/25 active:scale-95 transition-all"
+                onClick={resetForm}
+                className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>{language === 'mr' ? 'PCMC ला ईमेल पाठवा' : 'Send Email to PCMC'}</span>
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{language === 'mr' ? 'नवीन तक्रार नोंदवा' : 'Snap Another Issue'}</span>
               </button>
             </div>
-
-            <button
-              type="button"
-              onClick={resetForm}
-              className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>{language === 'mr' ? 'नवीन तक्रार नोंदवा' : 'Snap Another Issue'}</span>
-            </button>
           </div>
         </div>
       ) : (

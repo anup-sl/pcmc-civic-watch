@@ -109,8 +109,8 @@ function buildSvgBanner({ width, scale, cleanHeader, addressLine, latVal, lngVal
   };
 }
 
-async function backfillAll() {
-  console.log('Fetching all reports with photos...');
+async function reprocessAll() {
+  console.log('Fetching all reports and storage files...');
   const { data: reports, error } = await supabase
     .from('reports')
     .select('id, hotspot_id, report_type, photo_url, created_at, hotspots(latitude, longitude, area_name, category)')
@@ -122,40 +122,70 @@ async function backfillAll() {
     process.exit(1);
   }
 
-  console.log(`Found ${reports.length} total reports with photo URLs.`);
+  const { data: files, error: filesErr } = await supabase.storage
+    .from('civic-photos')
+    .list('', { limit: 100 });
+
+  if (filesErr || !files) {
+    console.error('Failed to list storage files:', filesErr);
+    process.exit(1);
+  }
+
+  const origFiles = files.filter(f => !f.name.startsWith('wm-') && !f.name.startsWith('test-') && f.name.includes('-'));
+
+  console.log(`Found ${reports.length} reports to process, ${origFiles.length} original files in storage.`);
 
   let updatedCount = 0;
-  let skippedCount = 0;
   let errorCount = 0;
 
   for (let i = 0; i < reports.length; i++) {
     const report = reports[i];
     const prefix = `[${i + 1}/${reports.length}] (Report ID ${report.id.slice(0, 8)})`;
 
-    // Skip if already stamped by this script
-    if (report.photo_url.includes('/test-wm-') || report.photo_url.includes('/wm-')) {
-      console.log(`${prefix} Already watermarked: ${report.photo_url}. Skipping.`);
-      skippedCount++;
-      continue;
-    }
-
     try {
-      console.log(`${prefix} Downloading photo: ${report.photo_url}...`);
-      const res = await fetch(report.photo_url);
-      if (!res.ok) {
-        console.warn(`${prefix} Failed to fetch HTTP ${res.status}. Skipping.`);
-        errorCount++;
-        continue;
+      // Find matching original file by timestamp
+      const rTime = new Date(report.created_at).getTime();
+      let bestOrig = null;
+      let minDiff = Infinity;
+      for (const f of origFiles) {
+        const match = f.name.match(/-(\d{13})-/);
+        if (match) {
+          const fTime = parseInt(match[1]);
+          const diff = Math.abs(rTime - fTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestOrig = f;
+          }
+        }
       }
 
-      const arrayBuf = await res.arrayBuffer();
-      const inputBuf = Buffer.from(arrayBuf);
+      let inputBuf = null;
+      if (bestOrig && minDiff < 300000) {
+        console.log(`${prefix} Downloading matched original file: ${bestOrig.name} (diff: ${(minDiff/1000).toFixed(1)}s)...`);
+        const { data: downData, error: downErr } = await supabase.storage
+          .from('civic-photos')
+          .download(bestOrig.name);
+        if (downErr || !downData) {
+          throw new Error(`Failed to download ${bestOrig.name}: ${downErr?.message}`);
+        }
+        inputBuf = Buffer.from(await downData.arrayBuffer());
+      } else {
+        console.log(`${prefix} Downloading from photo_url: ${report.photo_url}...`);
+        const res = await fetch(report.photo_url);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch HTTP ${res.status}`);
+        }
+        inputBuf = Buffer.from(await res.arrayBuffer());
+      }
 
-      const img = sharp(inputBuf);
-      const meta = await img.metadata();
+      // CRUCIAL FIX: Auto-orient with .rotate() and extract upright dimensions from the rotated buffer
+      const orientedBuf = await sharp(inputBuf).rotate().toBuffer();
+      const meta = await sharp(orientedBuf).metadata();
       const width = meta.width || 1200;
       const height = meta.height || 900;
       const scale = Math.max(0.7, Math.min(2.5, width / 1100));
+
+      console.log(`${prefix} Upright dimensions: ${width}x${height}`);
 
       const cleanHeader = cleanNoIndia('Pimpri Chinchwad, Maharashtra');
       const rawAddress = report.hotspots?.area_name || 'Pimpri-Chinchwad, Maharashtra';
@@ -177,7 +207,7 @@ async function backfillAll() {
 
       const bannerY = height - bannerHeight;
 
-      const stampedBuffer = await img
+      const stampedBuffer = await sharp(orientedBuf)
         .composite([
           {
             input: Buffer.from(svg),
@@ -188,7 +218,7 @@ async function backfillAll() {
         .jpeg({ quality: 90 })
         .toBuffer();
 
-      const newStoragePath = `wm-${report.id.slice(0, 8)}-${Date.now()}.jpg`;
+      const newStoragePath = `wm-v2-${report.id.slice(0, 8)}-${Date.now()}.jpg`;
       const { data: uploadData, error: uploadErr } = await supabase.storage
         .from('civic-photos')
         .upload(newStoragePath, stampedBuffer, {
@@ -196,9 +226,7 @@ async function backfillAll() {
         });
 
       if (uploadErr || !uploadData) {
-        console.error(`${prefix} Failed to upload to Supabase storage:`, uploadErr);
-        errorCount++;
-        continue;
+        throw new Error(`Failed to upload to Supabase storage: ${uploadErr?.message}`);
       }
 
       const { data: pubData } = supabase.storage
@@ -214,24 +242,27 @@ async function backfillAll() {
         .eq('id', report.id);
 
       if (updateErr) {
-        console.error(`${prefix} Failed to update report photo_url in DB:`, updateErr);
-        errorCount++;
-        continue;
+        throw new Error(`Failed to update DB: ${updateErr.message}`);
       }
 
-      console.log(`${prefix} Successfully backfilled -> ${newPublicUrl}`);
+      // Remove the old sideways watermarked file if it exists
+      const oldFileName = report.photo_url.split('/').pop()?.split('?')[0];
+      if (oldFileName && (oldFileName.startsWith('wm-') || oldFileName.startsWith('test-wm-')) && oldFileName !== newStoragePath) {
+        await supabase.storage.from('civic-photos').remove([oldFileName]);
+      }
+
+      console.log(`${prefix} Reprocessed successfully -> ${newPublicUrl}`);
       updatedCount++;
     } catch (err) {
-      console.error(`${prefix} Error processing report:`, err);
+      console.error(`${prefix} Error:`, err);
       errorCount++;
     }
   }
 
-  console.log(`\n=== Backfill Migration Complete ===`);
+  console.log(`\n=== Reprocess Migration Complete ===`);
   console.log(`Total: ${reports.length}`);
   console.log(`Updated: ${updatedCount}`);
-  console.log(`Skipped (already watermarked): ${skippedCount}`);
   console.log(`Errors: ${errorCount}`);
 }
 
-backfillAll().catch(console.error);
+reprocessAll().catch(console.error);
