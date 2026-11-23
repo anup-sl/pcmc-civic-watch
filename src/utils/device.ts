@@ -14,7 +14,8 @@ export function isMobileDevice(): boolean {
     navigator.userAgent || navigator.vendor || (window as unknown as { opera?: string }).opera || ''
   );
 
-  return isNarrow && Boolean(isCoarse || hasTouch || isMobileUA);
+  // Viewports narrower than 768px are mobile view; touch tablets under 1024px also count as mobile
+  return isNarrow || (window.innerWidth < 1024 && Boolean(isCoarse || hasTouch || isMobileUA));
 }
 
 export function useIsMobile(): boolean {

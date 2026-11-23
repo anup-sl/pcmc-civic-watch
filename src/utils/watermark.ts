@@ -607,47 +607,150 @@ export async function createWatermarkedImage(
 }
 
 /**
- * Downloads data URI, blob URL, or remote file reliably.
+ * Safely converts an image source (data URI, blob URL, remote URL, or Blob) into a Blob.
  */
-export async function downloadFile(source: string, filename: string): Promise<void> {
-  if (!source) return;
+export async function resolveImageBlob(source: string | Blob): Promise<Blob | null> {
+  if (!source) return null;
+  if (source instanceof Blob) return source;
+
+  if (typeof source === 'string') {
+    if (source.startsWith('data:')) {
+      try {
+        const parts = source.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+      } catch (e) {
+        console.warn('Failed to parse data URL to blob:', e);
+      }
+    }
+
+    if (source.startsWith('blob:') || source.startsWith('http://') || source.startsWith('https://')) {
+      try {
+        const res = await fetch(source, { mode: 'cors' });
+        if (res.ok) {
+          return await res.blob();
+        }
+      } catch (err) {
+        console.warn('Failed to fetch image source as blob:', err);
+      }
+    }
+  }
+  return null;
+}
+
+export interface SavePhotoResult {
+  success: boolean;
+  method: 'share' | 'download' | 'tab' | 'fallback';
+  error?: string;
+  blobUrl?: string;
+}
+
+/**
+ * Downloads or shares a photo reliably across desktop and mobile devices.
+ * Overcomes mobile browser constraints:
+ * 1. Uses Web Share API (Level 2) with File on mobile view so users can save directly to Photos / Camera Roll
+ *    or share directly to Mail/Gmail with the photo attached.
+ * 2. Uses Blob URL with <a download> on desktop and browsers that support downloading.
+ * 3. Falls back to opening the blob/image in a new window/tab for manual long-press saving on iOS/WebKit.
+ */
+export async function saveOrDownloadPhoto(
+  source: string | Blob,
+  filename: string,
+  meta?: { title?: string; text?: string }
+): Promise<SavePhotoResult> {
+  if (!source) return { success: false, method: 'fallback', error: 'No image source provided' };
 
   try {
-    if (source.startsWith('data:') || source.startsWith('blob:')) {
+    const blob = await resolveImageBlob(source);
+    const isMobile = typeof navigator !== 'undefined' && (
+      /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '') ||
+      (typeof window !== 'undefined' && window.innerWidth < 768)
+    );
+    const isIOS = typeof navigator !== 'undefined' && (
+      /iPhone|iPad|iPod/i.test(navigator.userAgent || '') ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+
+    // If we have a valid Blob
+    if (blob) {
+      const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+
+      // 1. Mobile First: Web Share API Level 2 (files support)
+      // When invoked on mobile, this brings up the native OS share sheet.
+      // iOS: User can tap "Save Image" (to Camera Roll) or "Mail" / "Gmail" (photo attached).
+      // Android: User can tap "Save to device" / "Google Photos" or "Gmail" (photo attached).
+      if (isMobile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: meta?.title || 'PCMC Civic Evidence Photo',
+            text: meta?.text || 'PCMC CivicWatch Geotagged Evidence Photo'
+          });
+          return { success: true, method: 'share' };
+        } catch (shareErr: unknown) {
+          if (shareErr instanceof Error && shareErr.name === 'AbortError') {
+            // User intentionally closed or completed the native share sheet
+            return { success: true, method: 'share' };
+          }
+          console.warn('Native share failed or dismissed, falling back to download:', shareErr);
+        }
+      }
+
+      // 2. Desktop and standard browser: Blob URL download via <a> element
+      const blobUrl = URL.createObjectURL(blob);
+
+      if (!isIOS) {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.rel = 'noopener noreferrer';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          if (a.parentNode) a.remove();
+          URL.revokeObjectURL(blobUrl);
+        }, 3000);
+        return { success: true, method: 'download' };
+      }
+
+      // 3. iOS Safari fallback: Opening blob URL or window for long-press saving
+      const win = window.open(blobUrl, '_blank');
+      if (!win) {
+        window.location.href = blobUrl;
+      }
+      return { success: true, method: 'tab', blobUrl };
+    }
+
+    // Direct fallback if blob resolution was not possible (e.g. strict cross-origin without CORS)
+    if (typeof source === 'string') {
       const a = document.createElement('a');
       a.href = source;
       a.download = filename;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => {
-        if (a.parentNode) document.body.removeChild(a);
-      }, 150);
-      return;
+      setTimeout(() => a.remove(), 200);
+      return { success: true, method: 'tab' };
     }
 
-    // Remote HTTP/HTTPS URL: fetch as local blob first so download attribute works
-    const res = await fetch(source, { mode: 'cors' });
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      if (a.parentNode) document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    }, 2000);
-  } catch (err) {
-    console.warn('downloadFile fallback to direct link:', err);
-    const a = document.createElement('a');
-    a.href = source;
-    a.download = filename;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      if (a.parentNode) document.body.removeChild(a);
-    }, 150);
+    return { success: false, method: 'fallback', error: 'Unable to process image' };
+  } catch (err: unknown) {
+    console.warn('saveOrDownloadPhoto error:', err);
+    return { success: false, method: 'fallback', error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/**
+ * Downloads data URI, blob URL, or remote file reliably.
+ */
+export async function downloadFile(source: string, filename: string): Promise<void> {
+  await saveOrDownloadPhoto(source, filename);
 }

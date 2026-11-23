@@ -13,12 +13,15 @@ import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
 import { PhoneCall, MessageSquareHeart, Map, Trophy } from 'lucide-react';
 import { getWardForArea } from './utils/pcmcDirectory';
-import { useIsMobile } from './utils/device';
+import { useIsMobile, isMobileDevice } from './utils/device';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>('map');
-  const [language, setLanguage] = useState<Language>('en');
   const isMobile = useIsMobile();
+  // Mobile landing page defaults directly to 'report' (Capture & Report); desktop/laptop defaults to 'map'
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    return isMobileDevice() ? 'report' : 'map';
+  });
+  const [language, setLanguage] = useState<Language>('en');
 
   // If a desktop/laptop user is on or attempts to navigate to the report view, fallback active tab to 'map'
   useEffect(() => {

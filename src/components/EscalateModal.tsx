@@ -1,18 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Copy, 
   Check, 
   Mail, 
   Download, 
-  MapPin,
-  Phone,
-  ChevronDown
+  MapPin, 
+  Phone, 
+  ChevronDown,
+  Share2,
+  ExternalLink,
+  Eye
 } from 'lucide-react';
 import type { Hotspot, Report } from '../types';
 import { getSLAStatus } from '../utils/geo';
 import { buildEscalationRouting } from '../config/escalationConfig';
-import { downloadFile, createWatermarkedImage } from '../utils/watermark';
+import { 
+  createWatermarkedImage, 
+  resolveImageBlob, 
+  saveOrDownloadPhoto 
+} from '../utils/watermark';
 import type { Language } from '../utils/i18n';
 
 interface EscalateModalProps {
@@ -26,8 +33,12 @@ export const EscalateModal = ({ hotspot, reports = [], language, onClose }: Esca
   const [emailsCopied, setEmailsCopied] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
   const [photoSaved, setPhotoSaved] = useState<boolean>(false);
+  const [saveMethod, setSaveMethod] = useState<'share' | 'download' | 'tab' | 'fallback' | null>(null);
   const [forceCommissionerTier, setForceCommissionerTier] = useState<boolean>(false);
   const [showRecipients, setShowRecipients] = useState<boolean>(false);
+  const [resolvedBlob, setResolvedBlob] = useState<Blob | null>(null);
+  const [resolvedBlobUrl, setResolvedBlobUrl] = useState<string | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
 
   const sla = useMemo(() => {
     return getSLAStatus(hotspot.created_at, hotspot.sla_hours, hotspot.status, hotspot.resolved_at, language);
@@ -104,23 +115,79 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
     setTimeout(() => setEmailsCopied(false), 2500);
   };
 
+  // Pre-load and resolve evidence image blob on modal mount for instant zero-delay sharing/downloading
+  useEffect(() => {
+    let isMounted = true;
+    const targetPhoto = photoUrl || (distinctPhotos.length > 0 ? distinctPhotos[0] : '');
+
+    const prepareEvidence = async () => {
+      try {
+        let blob: Blob | null = null;
+        if (targetPhoto) {
+          blob = await resolveImageBlob(targetPhoto);
+        }
+        if (!blob) {
+          const cert = await createWatermarkedImage('', {
+            id: hotspot.id,
+            category: hotspot.category,
+            subTag: hotspot.sub_tag,
+            areaName: hotspot.area_name,
+            latitude: hotspot.latitude,
+            longitude: hotspot.longitude,
+            createdAt: hotspot.created_at
+          });
+          blob = await resolveImageBlob(cert);
+        }
+        if (isMounted && blob) {
+          setResolvedBlob(blob);
+          const url = URL.createObjectURL(blob);
+          setResolvedBlobUrl(url);
+        }
+      } catch (e) {
+        console.warn('Evidence image pre-resolution notice:', e);
+      }
+    };
+
+    prepareEvidence();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [photoUrl, hotspot.id]);
+
+  useEffect(() => {
+    return () => {
+      if (resolvedBlobUrl) {
+        try {
+          URL.revokeObjectURL(resolvedBlobUrl);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [resolvedBlobUrl]);
+
   const handleDownloadWatermark = async () => {
     setDownloading(true);
     try {
       const targetPhoto = photoUrl || (distinctPhotos.length > 0 ? distinctPhotos[0] : '');
-      const stamped = await createWatermarkedImage(targetPhoto, {
-        id: hotspot.id,
-        category: hotspot.category,
-        subTag: hotspot.sub_tag,
-        areaName: hotspot.area_name,
-        latitude: hotspot.latitude,
-        longitude: hotspot.longitude,
-        createdAt: hotspot.created_at
+      const sourceToSave: string | Blob = resolvedBlob || targetPhoto;
+      const filename = `PCMC_Evidence_${hotspot.id.substring(0, 8)}.jpg`;
+
+      const result = await saveOrDownloadPhoto(sourceToSave, filename, {
+        title: `PCMC Evidence #${hotspot.id.substring(0, 8)}`,
+        text: `Official Geotagged Evidence Photo: ${hotspot.category} (${hotspot.sub_tag}) at ${hotspot.area_name}`
       });
-      await downloadFile(stamped, `PCMC_Evidence_${hotspot.id.substring(0, 8)}.jpg`);
-      setPhotoSaved(true);
+
+      if (result.success) {
+        setPhotoSaved(true);
+        setSaveMethod(result.method);
+      } else {
+        setShowPreviewModal(true);
+      }
     } catch (err) {
       console.error('Watermark error:', err);
+      setShowPreviewModal(true);
     } finally {
       setDownloading(false);
     }
@@ -274,7 +341,7 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
 
         {/* 5. Clean 2-Step Action Dock + WhatsApp & SMS Row */}
         <div className="space-y-2.5 pt-1">
-          {/* Row 1 — Step 1: Download Watermarked Photo */}
+          {/* Row 1 — Step 1: Save or Download Watermarked Photo */}
           <button
             type="button"
             disabled={downloading}
@@ -288,19 +355,50 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
             {photoSaved ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{language === 'mr' ? '✓ फोटो सेव्ह झाला' : '✓ Photo Saved'}</span>
+                <span>
+                  {saveMethod === 'share'
+                    ? (language === 'mr' ? '✓ फोटो शेअर / सेव्ह झाला' : '✓ Photo Shared / Saved')
+                    : (language === 'mr' ? '✓ फोटो सेव्ह झाला' : '✓ Photo Saved')}
+                </span>
               </>
             ) : (
               <>
-                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                {typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? (
+                  <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                )}
                 <span>
                   {downloading
-                    ? (language === 'mr' ? 'फोटो तयार करत आहे...' : 'Generating Evidence...')
-                    : (language === 'mr' ? '📥 टप्पा १: वॉटरमार्क फोटो डाउनलोड करा' : '📥 Step 1: Download Watermarked Photo')}
+                    ? (language === 'mr' ? 'फोटो तयार करत आहे...' : 'Preparing Evidence Photo...')
+                    : (language === 'mr' ? '📥 टप्पा १: वॉटरमार्क फोटो सेव्ह / शेअर करा' : '📥 Step 1: Save / Share Watermarked Photo')}
                 </span>
               </>
             )}
           </button>
+
+          {/* Quick Preview & Direct Open Link for Mobile Safari / Touch Devices */}
+          {(resolvedBlobUrl || photoUrl) && (
+            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(true)}
+                className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium transition-colors"
+              >
+                <Eye className="w-3 h-3" />
+                <span>{language === 'mr' ? 'फोटो पहा / दाबून सेव्ह करा' : 'Preview / Long-Press Save'}</span>
+              </button>
+              <a
+                href={resolvedBlobUrl || photoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+              >
+                <span>{language === 'mr' ? 'नवीन टॅबमध्ये उघडा' : 'Open in New Tab'}</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+          )}
 
           {/* Row 2 — Step 2: Open Default Email App (Glowing Emerald CTA) */}
           <div>
@@ -330,6 +428,49 @@ Concerned Residents & Taxpayers of ${hotspot.area_name}`;
           </p>
         </div>
       </div>
+
+      {/* Mobile Long-Press Save & Preview Modal */}
+      {showPreviewModal && (resolvedBlobUrl || photoUrl) && (
+        <div className="fixed inset-0 z-[1300] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-[#090D16] border border-white/[0.12] w-full max-w-sm rounded-2xl p-4 space-y-3 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+              <span className="text-xs font-bold text-white">
+                {language === 'mr' ? 'पुरावा फोटो (मोबाईल सेव्ह)' : 'Evidence Photo (Mobile Save)'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white transition-colors"
+                aria-label="Close photo preview"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative rounded-xl overflow-hidden border border-white/[0.08] bg-black">
+              <img
+                src={resolvedBlobUrl || photoUrl}
+                alt="PCMC Civic Evidence"
+                className="w-full max-h-[55vh] object-contain mx-auto"
+              />
+            </div>
+            <p className="text-[11px] text-slate-300 text-center leading-relaxed">
+              {language === 'mr'
+                ? 'मोबाईलवर वरील फोटोवर बोट ठेवून (Long-press) "Save Image" किंवा "फोटो सेव्ह करा" निवडा.'
+                : 'Touch & hold (long-press) the photo above and choose "Save Image" or "Add to Photos".'}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPreviewModal(false);
+                setPhotoSaved(true);
+              }}
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors"
+            >
+              {language === 'mr' ? 'समजले / पूर्ण झाले' : 'Done'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
