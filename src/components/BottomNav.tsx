@@ -1,8 +1,8 @@
-import { FileText, Map, Trophy } from 'lucide-react';
+import { Map, Trophy } from 'lucide-react';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
-export type TabKey = 'report' | 'map' | 'leaderboard';
+export type TabKey = 'map' | 'leaderboard';
 
 interface BottomNavProps {
   activeTab: TabKey;
@@ -31,31 +31,6 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
             <Map className="w-5 h-5" />
           </div>
           <span className="text-[11px] tracking-tight">{t.mapTab}</span>
-        </button>
-
-        {/* REPORT TAB (Prominent Center Emerald Button) */}
-        <button
-          type="button"
-          onClick={() => onTabChange('report')}
-          aria-label={t.reportTab}
-          className="relative -top-4 flex flex-col items-center group active:scale-95 transition-transform"
-        >
-          <div
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all border-2 ${
-              activeTab === 'report'
-                ? 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-emerald-600 text-white border-emerald-300 shadow-emerald-500/35 ring-4 ring-emerald-500/25 animate-pulse-subtle'
-                : 'bg-[#111827] text-slate-300 border-white/[0.1] hover:border-emerald-500 group-hover:text-emerald-400 shadow-black/50'
-            }`}
-          >
-            <FileText className="w-6.5 h-6.5" />
-          </div>
-          <span
-            className={`text-[11px] font-bold mt-1 tracking-tight ${
-              activeTab === 'report' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            {t.reportTab}
-          </span>
         </button>
 
         {/* LEADERBOARD TAB */}

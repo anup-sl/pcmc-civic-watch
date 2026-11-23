@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { ReportTab } from './components/ReportTab';
 import { MapTab } from './components/MapTab';
 import { LeaderboardTab } from './components/LeaderboardTab';
 import { BottomNav, type TabKey } from './components/BottomNav';
@@ -15,10 +14,9 @@ import { PhoneCall, MessageSquareHeart } from 'lucide-react';
 import { getWardForArea } from './utils/pcmcDirectory';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>('report');
+  const [activeTab, setActiveTab] = useState<TabKey>('map');
   const [language, setLanguage] = useState<Language>('en');
   const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
-  const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [showModeratorPortal, setShowModeratorPortal] = useState<boolean>(false);
@@ -87,11 +85,6 @@ export function App() {
       setSelectedHotspotId(hotspotId);
     }
     setActiveTab('map');
-  };
-
-  const handleSnapAtLocation = (coords: { lat: number; lng: number }) => {
-    setTargetCoords(coords);
-    setActiveTab('report');
   };
 
   return (
@@ -182,19 +175,10 @@ export function App() {
 
       {/* Main Tab Content Area */}
       <main className="flex-1 w-full max-w-lg mx-auto overflow-x-hidden">
-        {activeTab === 'report' && (
-          <ReportTab
-            language={language}
-            onNavigateToMap={handleNavigateToMap}
-            onNavigateToLeaderboard={() => setActiveTab('leaderboard')}
-            initialCoords={targetCoords}
-          />
-        )}
         {activeTab === 'map' && (
           <MapTab
             language={language}
             selectedHotspotId={selectedHotspotId}
-            onSnapAtLocation={handleSnapAtLocation}
           />
         )}
         {activeTab === 'leaderboard' && (
