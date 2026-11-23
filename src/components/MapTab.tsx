@@ -115,7 +115,7 @@ function createHotspotIcon(category: string, status: string, corroborations: num
   });
 }
 
-export const MapTab = ({ language, selectedHotspotId }: MapTabProps) => {
+export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTabProps) => {
   const afterFileInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS[language];
 
@@ -462,8 +462,8 @@ Map: ${googleMapsUrl}
         setPullStartY(null);
       }}
     >
-      {/* 1. TOP CATEGORY FILTER PILLS */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] max-w-lg md:max-w-3xl lg:max-w-4xl mx-auto flex flex-col gap-2 pointer-events-auto">
+      {/* 1. TOP CATEGORY FILTER PILLS & DASHBOARD CONTROLS */}
+      <div className="absolute top-3 left-3 right-3 z-[1000] max-w-lg md:max-w-4xl lg:max-w-5xl mx-auto flex flex-col gap-2 pointer-events-auto">
         {/* Pull-to-refresh Visual Indicator Banner */}
         {(pullDistance > 0 || isRefreshing) && (
           <div
@@ -475,7 +475,7 @@ Map: ${googleMapsUrl}
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-1 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl">
+        <div className="flex items-center gap-1.5 overflow-x-auto md:flex-wrap no-scrollbar scrollbar-none py-1.5 px-2 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl">
           <button
             type="button"
             onClick={() => setCategoryFilter('ALL')}
@@ -512,28 +512,28 @@ Map: ${googleMapsUrl}
         {/* Floating Controls: Locate Me, Refresh, CSV Dossier Export */}
         <div className="flex items-center justify-between text-xs px-1">
           {/* Status Color Legend */}
-          <div className="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-800 text-[10px]">
-            <span className="flex items-center gap-1 text-slate-300">
+          <div className="flex items-center gap-2.5 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] shadow-md">
+            <span className="flex items-center gap-1 text-slate-300 font-medium">
               <span className="w-2 h-2 rounded-full bg-red-500 inline-block shadow-sm" /> {t.open}
             </span>
-            <span className="flex items-center gap-1 text-slate-300">
+            <span className="flex items-center gap-1 text-slate-300 font-medium">
               <span className="w-2 h-2 rounded-full bg-purple-500 inline-block shadow-sm" /> {t.chronic}
             </span>
-            <span className="flex items-center gap-1 text-slate-300">
+            <span className="flex items-center gap-1 text-slate-300 font-medium">
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block shadow-sm" /> {t.resolved}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {/* Export CSV Dossier Button */}
             <button
               type="button"
               onClick={() => exportHotspotsToCSV(hotspots)}
               aria-label="Download CSV Dossier"
-              className="px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 text-[11px] font-bold flex items-center gap-1 shadow-md active:scale-95 hover:text-cyan-400"
+              className="px-3 py-1.5 min-h-[40px] rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 hover:text-cyan-400 hover:border-cyan-500/50 transition-all"
               title="Download CSV Dossier"
             >
-              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              <Download className="w-4 h-4 text-cyan-400" />
               <span>CSV</span>
             </button>
 
@@ -544,7 +544,7 @@ Map: ${googleMapsUrl}
                 handleLocateMe();
               }}
               aria-label={t.locateMe}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-cyan-400 hover:text-cyan-300 shadow-md active:scale-95"
+              className="min-h-[40px] min-w-[40px] px-2.5 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-cyan-400 hover:text-cyan-300 shadow-md active:scale-95 hover:border-cyan-500/50 transition-all"
               title={t.locateMe}
             >
               <Crosshair className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
@@ -556,7 +556,7 @@ Map: ${googleMapsUrl}
                 loadHotspots();
               }}
               aria-label="Refresh Hotspots"
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white shadow-md active:scale-95"
+              className="min-h-[40px] min-w-[40px] px-2.5 flex items-center justify-center rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white shadow-md active:scale-95 hover:border-slate-600 transition-all"
               title="Refresh Hotspots"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
@@ -625,10 +625,10 @@ Map: ${googleMapsUrl}
         onChange={handleAfterPhotoChange}
       />
 
-      {/* 3. BOTTOM DRAWER / SIDE PANEL FOR SELECTED HOTSPOT */}
+      {/* 3. BOTTOM DRAWER / SLEEK DESKTOP SIDE PANEL FOR SELECTED HOTSPOT */}
       {selectedHotspot && (
-        <div className="absolute bottom-16 md:bottom-6 left-0 right-0 md:left-6 md:right-auto md:top-20 z-[1050] max-w-lg md:max-w-md lg:max-w-lg mx-auto md:mx-0 px-3 md:px-0 pb-safe animate-in slide-in-from-bottom-5 md:slide-in-from-left-5 duration-200 pointer-events-auto">
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-h-[75vh] md:max-h-[calc(100vh-104px)] overflow-y-auto space-y-3.5 no-scrollbar pb-6">
+        <div className="absolute bottom-16 md:bottom-auto md:top-28 left-0 right-0 md:left-6 md:right-auto z-[1050] max-w-lg md:w-[420px] lg:w-[460px] mx-auto md:mx-0 px-3 md:px-0 pb-safe animate-in slide-in-from-bottom-5 md:slide-in-from-left-5 duration-200 pointer-events-auto">
+          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-xl max-h-[75vh] md:max-h-[calc(100vh-130px)] overflow-y-auto space-y-3.5 no-scrollbar scrollbar-none pb-6">
             {/* Drawer Header */}
             <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2.5">
               <div className="flex items-center gap-2.5">
@@ -966,8 +966,22 @@ Map: ${googleMapsUrl}
                   </span>
                 </div>
 
-                {/* ROW 3: REMAINING SECONDARY ACTIONS (CLEARANCE & CONTENT FLAG) */}
+                {/* ROW 3: REMAINING SECONDARY ACTIONS (CLEARANCE, REPORT NEARBY & CONTENT FLAG) */}
                 <div className="space-y-1.5 pt-0.5">
+                  {onSnapAtLocation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        onSnapAtLocation({ lat: selectedHotspot.latitude, lng: selectedHotspot.longitude });
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{language === 'mr' ? 'येथे नवीन तक्रार नोंदवा' : 'Report Issue at this Location'}</span>
+                    </button>
+                  )}
+
                   {selectedHotspot.status !== 'RESOLVED' ? (
                     <button
                       type="button"

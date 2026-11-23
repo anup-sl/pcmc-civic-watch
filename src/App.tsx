@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ReportTab } from './components/ReportTab';
 import { MapTab } from './components/MapTab';
 import { LeaderboardTab } from './components/LeaderboardTab';
 import { BottomNav, type TabKey } from './components/BottomNav';
@@ -10,13 +11,14 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { triggerHaptic } from './utils/haptics';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
-import { PhoneCall, MessageSquareHeart, Map, Trophy } from 'lucide-react';
+import { PhoneCall, MessageSquareHeart, Map, Trophy, FileText } from 'lucide-react';
 import { getWardForArea } from './utils/pcmcDirectory';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('map');
   const [language, setLanguage] = useState<Language>('en');
   const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
+  const [targetCoords, setTargetCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [showModeratorPortal, setShowModeratorPortal] = useState<boolean>(false);
@@ -87,6 +89,11 @@ export function App() {
     setActiveTab('map');
   };
 
+  const handleSnapAtLocation = (coords: { lat: number; lng: number }) => {
+    setTargetCoords(coords);
+    setActiveTab('report');
+  };
+
   return (
     <div className="min-h-screen bg-[#090D16] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       {/* Sticky Top Header with Brand & Bilingual Switcher */}
@@ -133,6 +140,23 @@ export function App() {
             >
               <Map className="w-4 h-4" />
               <span>{t.mapTab}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('selection');
+                setActiveTab('report');
+                setSelectedHotspotId(null);
+              }}
+              aria-label={t.reportTab}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'report'
+                  ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>{t.reportTab}</span>
             </button>
             <button
               type="button"
@@ -212,10 +236,22 @@ export function App() {
 
       {/* Main Tab Content Area */}
       <main className="flex-1 w-full flex flex-col min-h-0 overflow-x-hidden">
+        {activeTab === 'report' && (
+          <ReportTab
+            language={language}
+            onNavigateToMap={handleNavigateToMap}
+            onNavigateToLeaderboard={() => {
+              setActiveTab('leaderboard');
+              setSelectedHotspotId(null);
+            }}
+            initialCoords={targetCoords}
+          />
+        )}
         {activeTab === 'map' && (
           <MapTab
             language={language}
             selectedHotspotId={selectedHotspotId}
+            onSnapAtLocation={handleSnapAtLocation}
           />
         )}
         {activeTab === 'leaderboard' && (

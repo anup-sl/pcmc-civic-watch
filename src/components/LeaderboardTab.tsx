@@ -244,7 +244,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
   }, [wardSearchQuery]);
 
   return (
-    <div className="flex flex-col min-h-full pb-28 md:pb-12 pt-3 px-4 sm:px-6 max-w-lg md:max-w-4xl lg:max-w-5xl mx-auto w-full space-y-4">
+    <div className="flex flex-col min-h-full pb-28 md:pb-16 pt-3 px-4 sm:px-6 max-w-lg md:max-w-5xl lg:max-w-6xl mx-auto w-full space-y-4">
       {/* ======================================================== */}
       {/* 1. TOP HEADER & EXPORT ACTIONS                           */}
       {/* ======================================================== */}
@@ -355,19 +355,19 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
 
 
       {/* ======================================================== */}
-      {/* 3. UNIFIED 3-COLUMN SUMMARY STRIP (16px gap from filters) */}
+      {/* 3. UNIFIED 3-COLUMN SUMMARY STRIP (Clean Dashboard Row)   */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-3 gap-2.5 mt-4">
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-4 mt-2">
         {/* TOTAL OPEN */}
-        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-amber-400 rounded-2xl p-3 shadow-md text-center relative overflow-hidden">
-          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-amber-400 uppercase tracking-tight">
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
+        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-amber-400 rounded-2xl p-3 sm:p-4 shadow-md text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-amber-400 uppercase tracking-tight">
+            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
             <span>{t.totalOpen}</span>
           </div>
-          <div className="text-[28px] font-black text-white mt-1 leading-none font-mono tabular-nums">
+          <div className="text-[28px] sm:text-[34px] font-black text-white mt-1 leading-none font-mono tabular-nums">
             {summaryStrip.totalOpen}
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5 truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">
             {selectedWardFilter === 'ALL'
               ? (language === 'mr' ? 'शहर पातळी (PCMC)' : 'City-wide PCMC')
               : (language === 'mr' ? 'निवडलेल्या प्रभागात' : 'In selected ward')}
@@ -375,29 +375,29 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
         </div>
 
         {/* OVERDUE */}
-        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-rose-500 rounded-2xl p-3 shadow-md text-center relative overflow-hidden">
-          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-rose-400 uppercase tracking-tight">
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-rose-500 rounded-2xl p-3 sm:p-4 shadow-md text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-rose-400 uppercase tracking-tight">
+            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
             <span>{t.overdue}</span>
           </div>
-          <div className="text-[28px] font-black text-rose-400 mt-1 leading-none font-mono tabular-nums">
+          <div className="text-[28px] sm:text-[34px] font-black text-rose-400 mt-1 leading-none font-mono tabular-nums">
             {summaryStrip.overdueCount}
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5 truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">
             {language === 'mr' ? 'मुदत संपलेली' : 'Breached SLA'}
           </p>
         </div>
 
         {/* RESOLVED */}
-        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-emerald-400 rounded-2xl p-3 shadow-md text-center relative overflow-hidden">
-          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-400 uppercase tracking-tight">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-emerald-400 rounded-2xl p-3 sm:p-4 shadow-md text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-400 uppercase tracking-tight">
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
             <span>{t.resolved}</span>
           </div>
-          <div className="text-[28px] font-black text-emerald-400 mt-1 leading-none font-mono tabular-nums">
+          <div className="text-[28px] sm:text-[34px] font-black text-emerald-400 mt-1 leading-none font-mono tabular-nums">
             {summaryStrip.resolvedCount}
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5 truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">
             {language === 'mr' ? 'निवारण झाले' : 'Fixed & verified'}
           </p>
         </div>
@@ -406,11 +406,11 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
       {/* ======================================================== */}
       {/* 4. CLEAN AREA CIVIC VULNERABILITY RANKING LIST           */}
       {/* ======================================================== */}
-      <div className="space-y-2 pt-1">
+      <div className="space-y-2.5 pt-1">
         <div className="flex items-center justify-between text-xs px-0.5">
-          <h2 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <h2 className="text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
             <span>{t.vulnerabilityRanking}</span>
-            <span className="text-[10px] font-normal text-slate-500">
+            <span className="text-[10px] sm:text-[11px] font-normal text-slate-500">
               ({rankedAreas.length} {rankedAreas.length === 1 ? 'area' : 'areas'})
             </span>
           </h2>
@@ -419,7 +419,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             <button
               type="button"
               onClick={() => setSelectedWardFilter('ALL')}
-              className="text-[10px] text-cyan-400 hover:underline font-semibold"
+              className="text-[10px] sm:text-[11px] text-cyan-400 hover:underline font-semibold"
             >
               Reset to All Wards
             </button>
@@ -440,7 +440,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
             {rankedAreas.map((area, index) => {
               const rank = index + 1;
               const hasOverdue = area.overdueCount > 0;
