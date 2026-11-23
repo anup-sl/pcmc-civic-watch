@@ -17,11 +17,12 @@ import {
   MessageCircle,
   Info
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Hotspot, Report, Category } from '../types';
 import { CATEGORIES } from '../types';
-import { supabase, haversineDistanceMeters, submitClearanceReport } from '../supabase';
+import { supabase, haversineDistanceMeters, submitClearanceReport, corroborateHotspot } from '../supabase';
+import { hasUserCorroborated, recordUserCorroboration } from '../utils/corroborationStorage';
 import { PCMC_CENTER, getSLAStatus } from '../utils/geo';
 import { EscalateModal } from './EscalateModal';
 import { FlagModal } from './FlagModal';
@@ -46,73 +47,164 @@ function MapController({ center, zoom }: { center: [number, number]; zoom?: numb
   return null;
 }
 
-function createHotspotIcon(category: string, status: string, corroborations: number) {
-  const color = status === 'RESOLVED' ? '#22c55e' : status === 'CHRONIC_REOPENED' ? '#a855f7' : '#ef4444';
-  const bgColor = status === 'RESOLVED' ? '#14532d' : status === 'CHRONIC_REOPENED' ? '#581c87' : '#7f1d1d';
-  const emoji = category === 'Garbage' ? '🗑️' : category === 'Drainage' ? '💧' : category === 'Streetlight' ? '💡' : category === 'Encroachment' ? '🛑' : category === 'Other' ? '🌐' : '⚠️';
+const CATEGORY_EMOJI: Record<string, string> = {
+  Garbage: '🗑️',
+  Drainage: '🚰',
+  Pothole: '🕳️',
+  Streetlight: '💡',
+  Encroachment: '🛑',
+  Garden: '🌳',
+  Animals: '🐾',
+  Pollution: '🏭',
+  Other: '🌐'
+};
 
-  return L.divIcon({
-    className: 'custom-civic-pin',
+const iconCache = new Map<string, L.DivIcon>();
+
+export function getHotspotPhotoUrl(h: Hotspot): string | null {
+  if (h.reports && h.reports.length > 0) {
+    for (let i = h.reports.length - 1; i >= 0; i--) {
+      if (h.reports[i].photo_url) return h.reports[i].photo_url;
+    }
+  }
+  return null;
+}
+
+function createHotspotIcon(
+  category: string,
+  status: string,
+  corroborations: number,
+  photoUrl: string | null
+): L.DivIcon {
+  const ringColor = status === 'RESOLVED' ? '#10b981' : status === 'CHRONIC_REOPENED' ? '#ef4444' : '#f59e0b';
+  const emoji = CATEGORY_EMOJI[category] || '⚠️';
+  const cacheKey = `${category}_${status}_${corroborations}_${photoUrl || 'none'}`;
+
+  const cached = iconCache.get(cacheKey);
+  if (cached) return cached;
+
+  const icon = L.divIcon({
+    className: 'custom-civic-photo-pin',
     html: `
       <div style="
         position: relative;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 44px;
+        height: 51px;
+        cursor: pointer;
+        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+        transition: transform 0.15s ease-out;
       ">
+        <!-- 44px Circular Frame with Status-colored border ring -->
         <div style="
-          width: 36px;
-          height: 36px;
+          position: relative;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
-          background: ${bgColor};
-          border: 3px solid ${color};
+          background: #0f172a;
+          border: 3px solid ${ringColor};
+          overflow: hidden;
+          box-shadow: inset 0 0 6px rgba(0,0,0,0.7);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 14px rgba(0,0,0,0.6);
-          font-size: 16px;
-          transform: translateY(-2px);
-          transition: transform 0.2s ease;
+        ">
+          ${photoUrl ? `
+            <img 
+              src="${photoUrl}" 
+              alt="${category}" 
+              loading="lazy"
+              style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" 
+              onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+            />
+            <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 20px; background: #1e293b;">
+              ${emoji}
+            </div>
+          ` : `
+            <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 20px; background: #1e293b;">
+              ${emoji}
+            </div>
+          `}
+        </div>
+
+        <!-- Downward-pointing triangle pointer tip for GPS alignment -->
+        <div style="
+          position: absolute;
+          bottom: 1px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 7px solid ${ringColor};
+        "></div>
+
+        <!-- Bottom-Right Category Badge (18px circle) -->
+        <div style="
+          position: absolute;
+          bottom: 7px;
+          right: -2px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: ${ringColor};
+          border: 1.5px solid #0f172a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9.5px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+          z-index: 10;
         ">
           ${emoji}
         </div>
+
+        <!-- Corroboration Badge if > 1 -->
         ${corroborations > 1 ? `
+          <div style="
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            background: #e11d48;
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 800;
+            border-radius: 9999px;
+            padding: 0 4px;
+            border: 1.5px solid #0f172a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            z-index: 10;
+            line-height: 14px;
+          ">${corroborations}x</div>
+        ` : ''}
+
+        ${status === 'CHRONIC_REOPENED' ? `
           <div style="
             position: absolute;
             top: -4px;
             right: -4px;
-            background: #e11d48;
-            color: white;
-            font-size: 10px;
-            font-weight: 800;
-            border-radius: 9999px;
-            padding: 1px 5px;
-            border: 1.5px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-          ">${corroborations}x</div>
-        ` : ''}
-        ${status === 'CHRONIC_REOPENED' ? `
-          <div style="
-            position: absolute;
-            bottom: -3px;
             background: #9333ea;
-            color: white;
-            font-size: 8px;
+            color: #ffffff;
+            font-size: 7.5px;
             font-weight: 900;
             border-radius: 4px;
             padding: 0 3px;
+            border: 1px solid #0f172a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            z-index: 10;
             letter-spacing: 0.5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            line-height: 12px;
           ">CHRONIC</div>
         ` : ''}
       </div>
     `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 36],
-    popupAnchor: [0, -36]
+    iconSize: [44, 51],
+    iconAnchor: [22, 51],
+    popupAnchor: [0, -48]
   });
+
+  iconCache.set(cacheKey, icon);
+  return icon;
 }
 
 export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTabProps) => {
@@ -148,6 +240,45 @@ export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTab
   // WhatsApp & SMS Action States
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState<boolean>(false);
 
+  // Corroboration state (+1)
+  const [corroboratingId, setCorroboratingId] = useState<string | null>(null);
+  const [corroboratedIds, setCorroboratedIds] = useState<Set<string>>(() => new Set());
+
+  const isHotspotCorroborated = selectedHotspot 
+    ? (corroboratedIds.has(selectedHotspot.id) || hasUserCorroborated(selectedHotspot.id))
+    : false;
+
+  const handleCorroborate = async () => {
+    if (!selectedHotspot || corroboratingId || isHotspotCorroborated) return;
+    const targetId = selectedHotspot.id;
+    setCorroboratingId(targetId);
+    triggerHaptic('medium');
+
+    // Optimistic UI count increment
+    const currentCount = selectedHotspot.corroboration_count || 1;
+    const nextCount = currentCount + 1;
+    setSelectedHotspot(prev => prev && prev.id === targetId ? { ...prev, corroboration_count: nextCount } : prev);
+    setHotspots(prev => prev.map(h => h.id === targetId ? { ...h, corroboration_count: nextCount } : h));
+    recordUserCorroboration(targetId);
+    setCorroboratedIds(prev => new Set(prev).add(targetId));
+
+    try {
+      const res = await corroborateHotspot({
+        hotspotId: targetId,
+        currentCount
+      });
+      triggerHaptic('success');
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      if (res.report) {
+        setReports(prev => [...prev, res.report!]);
+      }
+    } catch (err) {
+      console.error('Failed to corroborate hotspot:', err);
+    } finally {
+      setCorroboratingId(null);
+    }
+  };
+
   // Lightbox & Pull-to-refresh states
   const [activeLightboxImage, setActiveLightboxImage] = useState<{ url: string; caption?: string; subCaption?: string } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -159,14 +290,23 @@ export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTab
     try {
       const { data, error } = await supabase
         .from('hotspots')
-        .select('*')
+        .select('*, reports(id, photo_url, report_type, created_at, notes)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setHotspots((data as Hotspot[]) || []);
       triggerHaptic('success');
     } catch (err) {
-      console.error('Failed to load hotspots:', err);
+      console.warn('Failed to load hotspots with reports, falling back:', err);
+      try {
+        const { data: fallbackData } = await supabase
+          .from('hotspots')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (fallbackData) setHotspots(fallbackData as Hotspot[]);
+      } catch (e) {
+        console.error('Fallback failed:', e);
+      }
     } finally {
       setIsRefreshing(false);
       setPullDistance(0);
@@ -229,6 +369,11 @@ export const MapTab = ({ language, selectedHotspotId, onSnapAtLocation }: MapTab
     setClearancePhotoPreview(null);
     setClearanceError(null);
     setIsSharingWhatsApp(false);
+
+    // If h already has joined reports, use them immediately for instant rendering
+    if (h.reports && h.reports.length > 0) {
+      setReports(h.reports);
+    }
 
     setLoadingReports(true);
     try {
@@ -600,16 +745,103 @@ Map: ${googleMapsUrl}
           )}
 
           {filteredHotspots.map((h) => {
-            const icon = createHotspotIcon(h.category, h.status, h.corroboration_count);
+            const photoUrl = getHotspotPhotoUrl(h);
+            const icon = createHotspotIcon(h.category, h.status, h.corroboration_count, photoUrl);
+            const ward = getWardForArea(h.area_name, h.latitude, h.longitude);
+            const emoji = CATEGORY_EMOJI[h.category] || '⚠️';
+            const ringColor = h.status === 'RESOLVED' ? '#10b981' : h.status === 'CHRONIC_REOPENED' ? '#ef4444' : '#f59e0b';
+
             return (
               <Marker
                 key={h.id}
                 position={[h.latitude, h.longitude]}
                 icon={icon}
                 eventHandlers={{
-                  click: () => handleSelectHotspot(h)
+                  mouseover: (e) => {
+                    if (window.innerWidth >= 768) {
+                      e.target.openPopup();
+                    }
+                  },
+                  click: () => {
+                    if (window.innerWidth >= 768) {
+                      handleSelectHotspot(h);
+                    }
+                  }
                 }}
-              />
+              >
+                <Popup
+                  offset={[0, -46]}
+                  closeButton={false}
+                  autoPan={false}
+                  className="civic-preview-popup"
+                >
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectHotspot(h);
+                    }}
+                    className="cursor-pointer group select-none w-64 p-2.5 rounded-2xl bg-slate-900/95 border border-slate-700/80 shadow-2xl backdrop-blur-xl text-left transition-all hover:border-cyan-500/60 hover:scale-[1.02]"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      {/* Thumbnail */}
+                      <div className="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center relative shadow-inner">
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={h.category}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl">{emoji}</span>
+                        )}
+                        <div
+                          className="absolute bottom-0 right-0 w-4 h-4 rounded-tl-md flex items-center justify-center text-[9px] shadow-sm"
+                          style={{ background: ringColor }}
+                        >
+                          {emoji}
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border"
+                            style={{
+                              backgroundColor: `${ringColor}22`,
+                              color: ringColor,
+                              borderColor: `${ringColor}66`
+                            }}
+                          >
+                            {h.status === 'OPEN' ? `🔴 ${t.open || 'OPEN'}` :
+                             h.status === 'CHRONIC_REOPENED' ? `🟣 ${t.chronic || 'CHRONIC'}` :
+                             `🟢 ${t.resolved || 'RESOLVED'}`}
+                          </span>
+                          {ward && (
+                            <span className="text-[10px] text-cyan-300 font-bold bg-cyan-950/60 px-1.5 py-0.5 rounded-md border border-cyan-800/50">
+                              {language === 'mr' ? `प्रभाग ${ward.wardNo}` : `Ward ${ward.wardNo}`}
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-xs font-bold text-white truncate mt-1 leading-snug group-hover:text-cyan-300 transition-colors">
+                          {h.sub_tag || t.categories[h.category] || h.category}
+                        </h4>
+
+                        <p className="text-[10px] text-slate-400 truncate flex items-center gap-0.5 mt-0.5">
+                          <MapPin className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+                          <span>{h.area_name}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-cyan-400 font-bold group-hover:text-cyan-300">
+                      <span>{language === 'mr' ? 'पूर्ण तपशील उघडा' : 'View Full Details'}</span>
+                      <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
             );
           })}
         </MapContainer>
@@ -966,8 +1198,39 @@ Map: ${googleMapsUrl}
                   </span>
                 </div>
 
-                {/* ROW 3: REMAINING SECONDARY ACTIONS (CLEARANCE, REPORT NEARBY & CONTENT FLAG) */}
+                {/* ROW 3: CITIZEN ACTIONS: CORROBORATE (+1), MARK CLEARED & REPORT NEARBY */}
                 <div className="space-y-1.5 pt-0.5">
+                  {/* Corroborate / Still an issue (+1) Button */}
+                  {selectedHotspot.status !== 'RESOLVED' && (
+                    <button
+                      type="button"
+                      disabled={isHotspotCorroborated || corroboratingId === selectedHotspot.id}
+                      onClick={handleCorroborate}
+                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 ${
+                        isHotspotCorroborated
+                          ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 cursor-default'
+                          : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-900/30'
+                      }`}
+                    >
+                      {corroboratingId === selectedHotspot.id ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>{t.corroborating || 'Recording +1...'}</span>
+                        </>
+                      ) : isHotspotCorroborated ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{t.alreadyCorroborated || 'You verified this (+1)'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Flame className="w-3.5 h-3.5 text-amber-300" />
+                          <span>{t.stillAnIssue || 'Still an issue (+1)'}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   {onSnapAtLocation && (
                     <button
                       type="button"
@@ -1002,18 +1265,21 @@ Map: ${googleMapsUrl}
                       ✓ {t.resolved}
                     </div>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={() => setFlagTarget({ hotspotId: selectedHotspot.id })}
-                    className="w-full py-2 px-3 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <Flag className="w-3.5 h-3.5 text-rose-400" />
-                    <span>{language === 'mr' ? 'आक्षेपार्ह फोटो / मजकुराची तक्रार करा' : 'Flag Inappropriate Content / Private Photo'}</span>
-                  </button>
                 </div>
               </div>
             )}
+
+            {/* 4. FOOTER: CONTENT FLAG / REPORT BUTTON REPOSITIONED AT VERY BOTTOM OF DRAWER */}
+            <div className="pt-2.5 border-t border-slate-800/80 mt-2">
+              <button
+                type="button"
+                onClick={() => setFlagTarget({ hotspotId: selectedHotspot.id })}
+                className="w-full py-1.5 px-3 text-slate-500 hover:text-rose-400 font-medium text-[11px] flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Flag className="w-3 h-3 text-slate-500 hover:text-rose-400" />
+                <span>{language === 'mr' ? 'आक्षेपार्ह फोटो / मजकुराची तक्रार करा' : 'Flag Inappropriate Content / Private Photo'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

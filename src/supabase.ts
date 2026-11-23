@@ -316,37 +316,99 @@ export async function submitClearanceReport(
   };
 }
 
+export interface CorroborateHotspotParams {
+  hotspotId: string;
+  photoBlob?: Blob | File;
+  notes?: string;
+  currentCount?: number;
+}
+
+export interface CorroborateHotspotResult {
+  hotspot: Hotspot;
+  report?: Report;
+}
+
 /**
- * Corroborate an existing hotspot (+1)
+ * Corroborate an existing hotspot (+1), supporting one-tap upvotes and optional photo proof.
  */
-export async function corroborateHotspot(hotspotId: string, notes?: string) {
-  const { data: current, error: getError } = await supabase
+export async function corroborateHotspot(
+  paramsOrId: string | CorroborateHotspotParams,
+  notesArg?: string
+): Promise<CorroborateHotspotResult> {
+  let hotspotId: string;
+  let photoBlob: Blob | File | undefined;
+  let notes: string | undefined;
+  let currentCount: number | undefined;
+
+  if (typeof paramsOrId === 'string') {
+    hotspotId = paramsOrId;
+    notes = notesArg;
+  } else {
+    hotspotId = paramsOrId.hotspotId;
+    photoBlob = paramsOrId.photoBlob;
+    notes = paramsOrId.notes;
+    currentCount = paramsOrId.currentCount;
+  }
+
+  let photoUrl = '';
+  if (photoBlob) {
+    try {
+      const uploadRes = await uploadCivicPhoto(photoBlob, 'corroboration');
+      photoUrl = uploadRes.url;
+    } catch (e) {
+      console.warn('Failed to upload corroboration photo:', e);
+    }
+  }
+
+  // 1. Fetch current count if not provided
+  let newCount = (currentCount || 1) + 1;
+  if (currentCount === undefined) {
+    const { data: current, error: getError } = await supabase
+      .from('hotspots')
+      .select('corroboration_count')
+      .eq('id', hotspotId)
+      .single();
+
+    if (!getError && current) {
+      newCount = (current.corroboration_count || 1) + 1;
+    }
+  }
+
+  // 2. Increment corroboration_count on hotspots
+  const { data: updatedHotspot, error: updateError } = await supabase
     .from('hotspots')
-    .select('corroboration_count')
-    .eq('id', hotspotId)
-    .single();
-
-  if (getError) throw getError;
-
-  const newCount = (current.corroboration_count || 1) + 1;
-
-  const { data: updated, error: updateError } = await supabase
-    .from('hotspots')
-    .update({ corroboration_count: newCount })
+    .update({
+      corroboration_count: newCount
+    })
     .eq('id', hotspotId)
     .select()
     .single();
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    throw new Error(`Failed to corroborate hotspot: ${updateError.message}`);
+  }
 
-  await supabase.from('reports').insert({
-    hotspot_id: hotspotId,
-    report_type: 'CORROBORATION',
-    photo_url: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop',
-    notes: notes || 'Citizen corroborated this issue (+1)'
-  });
+  // 3. Insert report entry
+  let newReport: Report | undefined;
+  const { data: reportData, error: reportError } = await supabase
+    .from('reports')
+    .insert({
+      hotspot_id: hotspotId,
+      report_type: 'CORROBORATION',
+      photo_url: photoUrl || 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop',
+      notes: notes || 'Citizen verified: Still an active issue (+1)'
+    })
+    .select()
+    .single();
 
-  return updated as Hotspot;
+  if (!reportError && reportData) {
+    newReport = reportData as Report;
+  }
+
+  return {
+    hotspot: updatedHotspot as Hotspot,
+    report: newReport
+  };
 }
 
 export interface FlagReportParams {
