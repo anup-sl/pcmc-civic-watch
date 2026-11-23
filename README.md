@@ -33,7 +33,8 @@ Built with **React + TypeScript + Vite + Tailwind CSS + Supabase + Leaflet (Open
   - Level 2 Vigilance auto-escalation to the Municipal Commissioner and Joint Commissioner (Vigilance & Quality Control).
   - One-click HTML5 Canvas watermarked proof generator with embedded GPS, tracking ID, and timestamp.
 
-### 3. 🏆 Leaderboard & Ward Dashboard Tab
+### 3. 📊 Dashboard & Ward Analytics Tab
+- **Ward Drill-Down**: Click any ward to view all reported issues sorted by highest citizen verifications, with direct "View on Map" routing.
 - **Interactive Ward Incident Dashboard**: Real-time counter cards (`Open`, `Overdue`, `Resolved`, `Citizens Verified`) for any selected Prabhag across PCMC's 8 Administrative Zones (A through H).
 - **Searchable Prabhag Picker**: Switch between 40+ PCMC Prabhags (*Wakad, Pimple Saudagar, Nigdi, Ravet, Chinchwad*, etc.).
 - **City-wide Summary**: High-level counters and area vulnerability rankings.

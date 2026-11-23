@@ -11,7 +11,7 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { triggerHaptic } from './utils/haptics';
 import type { Language } from './utils/i18n';
 import { TRANSLATIONS } from './utils/i18n';
-import { PhoneCall, MessageSquareHeart, Map, Trophy } from 'lucide-react';
+import { PhoneCall, MessageSquareHeart, Map, LayoutDashboard } from 'lucide-react';
 import { getWardForArea } from './utils/pcmcDirectory';
 import { useIsMobile, isMobileDevice } from './utils/device';
 
@@ -168,7 +168,7 @@ export function App() {
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <Trophy className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4" />
               <span>{t.leaderboardTab}</span>
             </button>
           </nav>

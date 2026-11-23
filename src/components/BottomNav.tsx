@@ -1,4 +1,4 @@
-import { FileText, Map, Trophy } from 'lucide-react';
+import { FileText, Map, LayoutDashboard } from 'lucide-react';
 import type { Language } from '../utils/i18n';
 import { TRANSLATIONS } from '../utils/i18n';
 
@@ -58,7 +58,7 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
           </span>
         </button>
 
-        {/* LEADERBOARD TAB */}
+        {/* DASHBOARD TAB */}
         <button
           type="button"
           onClick={() => onTabChange('leaderboard')}
@@ -70,7 +70,7 @@ export const BottomNav = ({ activeTab, language, onTabChange }: BottomNavProps) 
           }`}
         >
           <div className={`p-1 rounded-xl transition-all ${activeTab === 'leaderboard' ? 'bg-emerald-950/50 text-emerald-400' : ''}`}>
-            <Trophy className="w-5 h-5" />
+            <LayoutDashboard className="w-5 h-5" />
           </div>
           <span className="text-[11px] tracking-tight">{t.leaderboardTab}</span>
         </button>
