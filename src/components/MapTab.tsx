@@ -975,7 +975,7 @@ Map: ${googleMapsUrl}
                         triggerHaptic('selection');
                         onSnapAtLocation({ lat: selectedHotspot.latitude, lng: selectedHotspot.longitude });
                       }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                      className="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all md:hidden"
                     >
                       <Camera className="w-3.5 h-3.5 text-emerald-400" />
                       <span>{language === 'mr' ? 'येथे नवीन तक्रार नोंदवा' : 'Report Issue at this Location'}</span>
