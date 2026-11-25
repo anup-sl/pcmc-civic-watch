@@ -52,6 +52,12 @@ export const SUB_TAG_TRANSLATIONS: Record<Category, SubTagTranslation[]> = {
     { en: 'Road Blocked by Building Material', mr: 'रस्त्यावर बांधकाम साहित्य' },
     { en: 'Other', mr: 'इतर' }
   ],
+  Footpath: [
+    { en: 'Bad Condition / Damaged Footpath', mr: 'खराब / तुटलेला पदपथ' },
+    { en: 'Missing / Non-Existent Footpath', mr: 'पदपथ नसणे / पादचारी मार्गाचा अभाव' },
+    { en: 'Footpath Encroachment / Obstruction', mr: 'पदपथावरील अतिक्रमण' },
+    { en: 'Other', mr: 'इतर' }
+  ],
   Garden: [
     { en: 'Fallen Tree / Blocking Road', mr: 'रस्त्यावर पडलेले झाड' },
     { en: 'Dangerous Hanging Branches', mr: 'धोकादायक लटकणाऱ्या फांद्या' },
@@ -458,6 +464,20 @@ export const QUICK_PHRASES_BY_CATEGORY: Record<Category, { en: string[]; mr: str
       'भंगार बेवारस वाहनामुळे रस्ता कित्येक आठवडे अडवला आहे',
       'सार्वजनिक फुटपाथवर अनधिकृत पत्र्याचे शेड बांधले आहे',
       'मोठ्या जाहिरात फलकांमुळे वळणावर अपघात धोका निर्माण होत आहे'
+    ]
+  },
+  Footpath: {
+    en: [
+      'Footpath broken and uneven, dangerous for pedestrians',
+      'No footpath on this road, pedestrians forced onto traffic',
+      'Footpath blocked by vendors and parked vehicles',
+      'Footpath tiles missing, creates trip hazard'
+    ],
+    mr: [
+      'पदपथ तुटलेला आणि असमान, पादचाऱ्यांसाठी धोकादायक',
+      'या रस्त्यावर पदपथ नाही, पादचारी वाहतुकीत येतात',
+      'पदपथ विक्रेते आणि पार्क केलेल्या वाहनांनी अडवला',
+      'पदपथाच्या टाइल्स गहाळ, अडखळण्याचा धोका'
     ]
   },
   Garden: {

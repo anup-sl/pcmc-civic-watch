@@ -4,6 +4,7 @@ export type Category =
   | 'Pothole' 
   | 'Streetlight' 
   | 'Encroachment' 
+  | 'Footpath'
   | 'Garden' 
   | 'Animals' 
   | 'Pollution' 
@@ -140,6 +141,21 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
       'Other'
     ],
     description: 'Footpath blocked or illegal public land occupation'
+  },
+  Footpath: {
+    name: 'Footpath',
+    slaHours: 168,
+    iconName: 'Footprints',
+    color: 'text-sky-400',
+    bgColor: 'bg-sky-500/10 hover:bg-sky-500/20',
+    borderColor: 'border-sky-500/40',
+    subTags: [
+      'Bad Condition / Damaged Footpath',
+      'Missing / Non-Existent Footpath',
+      'Footpath Encroachment / Obstruction',
+      'Other'
+    ],
+    description: 'Damaged, missing, or obstructed pedestrian footpath'
   },
   Garden: {
     name: 'Garden',

@@ -27,7 +27,8 @@ import {
   Trees,
   PawPrint,
   Wind,
-  Smartphone
+  Smartphone,
+  Footprints
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CATEGORIES } from '../types';
@@ -812,6 +813,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                         {catKey === 'Pothole' && <AlertTriangle className="w-4 h-4" />}
                         {catKey === 'Streetlight' && <Lightbulb className="w-4 h-4" />}
                         {catKey === 'Encroachment' && <ShieldAlert className="w-4 h-4" />}
+                        {catKey === 'Footpath' && <Footprints className="w-4 h-4" />}
                         {catKey === 'Garden' && <Trees className="w-4 h-4" />}
                         {catKey === 'Animals' && <PawPrint className="w-4 h-4" />}
                         {catKey === 'Pollution' && <Wind className="w-4 h-4" />}
