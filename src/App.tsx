@@ -14,6 +14,7 @@ import { TRANSLATIONS } from './utils/i18n';
 import { PhoneCall, MessageSquareHeart, Map, LayoutDashboard } from 'lucide-react';
 import { getWardForArea } from './utils/pcmcDirectory';
 import { useIsMobile, isMobileDevice } from './utils/device';
+import { isStaging } from './utils/env';
 
 export function App() {
   const isMobile = useIsMobile();
@@ -109,6 +110,11 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#090D16] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+      {isStaging() && (
+        <div className="w-full bg-amber-500/15 border-b border-amber-500/40 text-amber-300 text-xs font-semibold text-center py-1.5">
+          QA / Test Environment (Safe Sandbox) — emails locked to anupsl.aws1@gmail.com
+        </div>
+      )}
       {/* Sticky Top Header with Brand & Bilingual Switcher */}
       <header className="sticky top-0 z-40 bg-[#090D16]/90 backdrop-blur-md border-b border-white/[0.07] header-safe-top">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
