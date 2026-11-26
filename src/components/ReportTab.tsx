@@ -13,7 +13,6 @@ import {
   RefreshCw, 
   Sparkles, 
   Check, 
-  Crosshair, 
   Plus,
   Edit2,
   Search,
@@ -73,9 +72,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   // Location states
   const [latitude, setLatitude] = useState<number>(initialCoords?.lat || PCMC_CENTER.latitude);
   const [longitude, setLongitude] = useState<number>(initialCoords?.lng || PCMC_CENTER.longitude);
-  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [areaName, setAreaName] = useState<string>(PCMC_CENTER.name);
-  const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isGeocoding, setIsGeocoding] = useState<boolean>(false);
   const [isOutsidePCMC, setIsOutsidePCMC] = useState<boolean>(false);
   const [isEditingArea, setIsEditingArea] = useState<boolean>(false);
@@ -149,22 +146,18 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       return;
     }
 
-    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setLatitude(lat);
         setLongitude(lng);
-        setAccuracy(Math.round(pos.coords.accuracy));
-        setIsLocating(false);
         if (!isManualArea || forceOverwrite) {
           resolveAddressForCoords(lat, lng);
         }
       },
       (err) => {
         console.warn('Geolocation warning, defaulting to PCMC center:', err.message);
-        setIsLocating(false);
         if (!isManualArea || forceOverwrite) {
           resolveAddressForCoords(latitude, longitude);
         }
@@ -285,6 +278,10 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     triggerHaptic('heavy');
+    if (isOutsidePCMC) {
+      setErrorMessage(language === 'mr' ? 'तक्रार फक्त PCMC हद्दीत नोंदवता येईल.' : 'Reporting is only permitted within PCMC municipal boundaries.');
+      return;
+    }
     if (imageScanError) {
       setErrorMessage(language === 'mr' ? imageScanError.marathiReason : imageScanError.reason);
       return;
@@ -488,33 +485,6 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
             )}
           </div>
 
-          {/* GPS Auto-locate and Switch Ward strictly on line 1 */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setIsManualArea(false);
-                grabLiveGPS(true);
-              }}
-              disabled={isLocating}
-              className="min-h-[44px] flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-400 shadow-sm active:scale-95 transition-all shrink-0 whitespace-nowrap"
-            >
-              <Crosshair className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-              <span>{isLocating ? '...' : accuracy ? `±${accuracy}m GPS` : t.locateMe}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setShowLocationPicker(!showLocationPicker);
-              }}
-              className="min-h-[44px] flex items-center text-[11px] text-slate-400 hover:text-cyan-400 underline font-semibold px-2 shrink-0 whitespace-nowrap active:scale-95 transition-all"
-            >
-              {showLocationPicker ? t.closeWards : t.switchWard}
-            </button>
-          </div>
         </div>
 
         {/* LINE 2: Corporators & Zone Office Info (Always on line 2) */}
@@ -1057,9 +1027,9 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           {/* SUBMIT BUTTON */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isOutsidePCMC}
             className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white shadow-xl transition-all flex items-center justify-center gap-2 ${
-              isSubmitting
+              isSubmitting || isOutsidePCMC
                 ? 'bg-slate-700 cursor-not-allowed opacity-75'
                 : 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-600/30 active:scale-[0.98]'
             }`}
@@ -1073,9 +1043,11 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               <>
                 <CheckCircle2 className="w-4 h-4" />
                 <span>
-                  {openNearbyMatch ? t.corroborateSubmit : 
-                   resolvedNearbyMatch ? t.reopenSubmit : 
-                   t.submitReport}
+                  {isOutsidePCMC
+                    ? (language === 'mr' ? 'PCMC हद्दीबाहेर' : 'Outside PCMC Jurisdiction')
+                    : (openNearbyMatch ? t.corroborateSubmit :
+                       resolvedNearbyMatch ? t.reopenSubmit :
+                       t.submitReport)}
                 </span>
               </>
             )}
