@@ -354,16 +354,16 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
           const { subject, html } = buildGrievanceEmail({
             category: selectedCategory,
             subTag: selectedSubTag,
-            wardNo: 16,
+            wardNo: activeWard.wardNo,
             locality: areaName.trim() || 'Pimpri Chinchwad',
-            zone: 'J',
+            zone: activeWard.zone,
             notes: combinedNotes,
             timestamp: new Date().toISOString(),
             slaHours: CATEGORIES[selectedCategory].slaHours,
             slaDue: new Date(Date.now() + CATEGORIES[selectedCategory].slaHours * 3600000).toISOString(),
             lat: latitude,
             lng: longitude,
-            photoUrl: photoPreviewUrl || '',
+            photoUrl: result?.report?.photo_url || photoPreviewUrl || '',
             citizenEmail: citizenEmail.trim()
           });
           fetch('/api/send-grievance', {
