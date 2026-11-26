@@ -347,6 +347,23 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       });
 
       setSubmissionResult(result);
+      // Fire-and-forget sandbox email escalation (best effort)
+      if (citizenEmail.trim()) {
+        try {
+          fetch('/api/send-grievance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: 'anupsl.aws1@gmail.com',
+              cc: citizenEmail.trim(),
+              replyTo: citizenEmail.trim(),
+              subject: `[TEST] PCMC CivicWatch Grievance - ${selectedCategory}`,
+              html: `<p>Issue: ${selectedCategory} - ${selectedSubTag}</p><p>Notes: ${combinedNotes}</p><p>GPS: ${latitude}, ${longitude}</p>`,
+              issueId: result?.report?.id
+            })
+          }).catch(() => {});
+        } catch (_) {}
+      }
       triggerHaptic('success');
 
       confetti({
