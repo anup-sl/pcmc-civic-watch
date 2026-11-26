@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { triggerHaptic } from '../utils/haptics';
+import { buildGrievanceEmail } from '../utils/grievanceEmailTemplate';
 import { ImageLightbox } from './ImageLightbox';
 import { 
   Camera, 
@@ -350,6 +351,21 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
       // Fire-and-forget sandbox email escalation (best effort)
       if (citizenEmail.trim()) {
         try {
+          const { subject, html } = buildGrievanceEmail({
+            category: selectedCategory,
+            subTag: selectedSubTag,
+            wardNo: 16,
+            locality: areaName.trim() || 'Pimpri Chinchwad',
+            zone: 'J',
+            notes: combinedNotes,
+            timestamp: new Date().toISOString(),
+            slaHours: CATEGORIES[selectedCategory].slaHours,
+            slaDue: new Date(Date.now() + CATEGORIES[selectedCategory].slaHours * 3600000).toISOString(),
+            lat: latitude,
+            lng: longitude,
+            photoUrl: photoPreviewUrl || '',
+            citizenEmail: citizenEmail.trim()
+          });
           fetch('/api/send-grievance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -357,8 +373,8 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               to: 'anupsl.aws1@gmail.com',
               cc: citizenEmail.trim(),
               replyTo: citizenEmail.trim(),
-              subject: `[TEST] PCMC CivicWatch Grievance - ${selectedCategory}`,
-              html: `<p>Issue: ${selectedCategory} - ${selectedSubTag}</p><p>Notes: ${combinedNotes}</p><p>GPS: ${latitude}, ${longitude}</p>`,
+              subject,
+              html,
               issueId: result?.report?.id
             })
           }).catch(() => {});
