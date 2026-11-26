@@ -49,7 +49,7 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'queue' | 'hotspots' | 'feedback'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'hotspots' | 'feedback' | 'emails'>('queue');
   const [queue, setQueue] = useState<ModerationQueueItem[]>([]);
   const [allHotspots, setAllHotspots] = useState<Hotspot[]>([]);
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -349,6 +349,17 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px] text-white">
                   {feedbacks.length}
                 </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('emails')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeTab === 'emails'
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>Email Escalations</span>
               </button>
             </div>
 
@@ -659,6 +670,14 @@ export const ModeratorPortal = ({ onClose }: ModeratorPortalProps) => {
                     );
                   })
                 )}
+              </div>
+            )}
+
+            {activeTab === 'emails' && (
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 no-scrollbar">
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300">
+                  Email Escalations audit log (table: email_logs). Run supabase-email-logs.sql to create it. Sandbox recipient lock: anupsl.aws1@gmail.com on staging.
+                </div>
               </div>
             )}
           </div>
