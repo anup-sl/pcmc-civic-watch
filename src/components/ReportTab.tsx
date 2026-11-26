@@ -97,7 +97,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const [citizenName, setCitizenName] = useState<string>(() => {
     try { return localStorage.getItem('pcmc_citizen_name') || ''; } catch { return ''; }
   });
-  const [citizenContact, setCitizenContact] = useState<string>(() => {
+  const [citizenPhone, setCitizenPhone] = useState<string>(() => {
     try { return localStorage.getItem('pcmc_citizen_contact') || ''; } catch { return ''; }
   });
 
@@ -329,7 +329,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
 
       const citizenParts = [
         citizenName.trim() ? `Reported by: ${citizenName.trim()}` : '',
-        citizenContact.trim() ? `Contact: ${citizenContact.trim()}` : ''
+        citizenPhone.trim() ? `Contact: ${citizenPhone.trim()}` : ''
       ].filter(Boolean).join(' | ');
       const combinedNotes = [notes.trim(), citizenParts].filter(Boolean).join(' • ');
 
@@ -342,7 +342,8 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         slaHours: CATEGORIES[selectedCategory].slaHours,
         photoBlob: finalBlob!,
         notes: combinedNotes || undefined,
-        citizenEmail: citizenEmail.trim() || undefined
+        citizenEmail: citizenEmail.trim() || undefined,
+        citizenPhone: citizenPhone.trim() || undefined
       });
 
       setSubmissionResult(result);
@@ -913,18 +914,6 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
             />
 
-            {/* Optional citizen email */}
-            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mt-2">
-              Your Email (for updates &amp; CC) — optional
-            </label>
-            <input
-              type="email"
-              value={citizenEmail}
-              onChange={(e) => setCitizenEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
-            />
-
             {/* Quick Phrase Chips */}
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-medium">{t.quickPhrases}</span>
@@ -966,16 +955,28 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
               />
               <input
-                type="text"
-                value={citizenContact}
+                type="tel"
+                value={citizenPhone}
                 onChange={(e) => {
-                  setCitizenContact(e.target.value);
+                  setCitizenPhone(e.target.value);
                   try { localStorage.setItem('pcmc_citizen_contact', e.target.value); } catch (_) {}
                 }}
-                placeholder={language === 'mr' ? 'ईमेल किंवा मोबाईल नंबर (पर्यायी)' : 'Email or Phone (Optional)'}
+                placeholder={language === 'mr' ? 'मोबाईल नंबर (98XXXXXXXX) (पर्यायी)' : '98XXXXXXXX (for engineer callback)'}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+              <input
+                type="email"
+                value={citizenEmail}
+                onChange={(e) => setCitizenEmail(e.target.value)}
+                placeholder={language === 'mr' ? 'ईमेल पत्ता (अपडेट्ससाठी)' : 'Email Address (Recommended for updates)'}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
               />
             </div>
+            <p className="text-[11px] text-cyan-300/90 leading-snug">
+              {language === 'mr'
+                ? '💡 तक्रार PCMC कडे नोंदवल्यानंतर थेट पाठपुरावा व निवारण अपडेट्स मिळवण्यासाठी ईमेल अवश्य प्रविष्ट करा.'
+                : '💡 Enter your email to receive direct escalation & resolution updates as this issue is submitted to PCMC.'}
+            </p>
           </div>
 
           {/* ANTI-ABUSE & COMMUNITY SAFETY DECLARATION */}

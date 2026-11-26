@@ -104,6 +104,7 @@ export interface SubmitReportParams {
   photoBlob: Blob | File;
   notes?: string;
   citizenEmail?: string;
+  citizenPhone?: string;
 }
 
 export interface SubmitReportResult {
