@@ -67,6 +67,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
   const [selectedCategory, setSelectedCategory] = useState<Category>('Pothole');
   const [selectedSubTag, setSelectedSubTag] = useState<string>(CATEGORIES.Pothole.subTags[0]);
   const [notes, setNotes] = useState<string>('');
+  const [citizenEmail, setCitizenEmail] = useState<string>('');
 
   // Location states
   const [latitude, setLatitude] = useState<number>(initialCoords?.lat || PCMC_CENTER.latitude);
@@ -340,7 +341,8 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
         areaName: areaName.trim() || 'Pimpri Chinchwad',
         slaHours: CATEGORIES[selectedCategory].slaHours,
         photoBlob: finalBlob!,
-        notes: combinedNotes || undefined
+        notes: combinedNotes || undefined,
+        citizenEmail: citizenEmail.trim() || undefined
       });
 
       setSubmissionResult(result);
@@ -908,6 +910,18 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
               onChange={(e) => setNotes(e.target.value)}
               placeholder={t.landmarkPlaceholder}
               maxLength={140}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+            />
+
+            {/* Optional citizen email */}
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mt-2">
+              Your Email (for updates &amp; CC) — optional
+            </label>
+            <input
+              type="email"
+              value={citizenEmail}
+              onChange={(e) => setCitizenEmail(e.target.value)}
+              placeholder="you@example.com"
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
             />
 

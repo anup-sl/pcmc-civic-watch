@@ -103,6 +103,7 @@ export interface SubmitReportParams {
   slaHours: number;
   photoBlob: Blob | File;
   notes?: string;
+  citizenEmail?: string;
 }
 
 export interface SubmitReportResult {
