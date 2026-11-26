@@ -341,7 +341,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             <LayoutDashboard className="w-5 h-5 text-cyan-400" />
             {t.leaderboardTab}
           </h1>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-slate-400 hidden sm:block">
             {language === 'mr' ? 'प्रभागनिहाय नागरी डॅशबोर्ड व अधिकारी समन्वय' : 'Area & Ward Civic Dashboard • Governance Tracking'}
           </p>
         </div>
@@ -766,17 +766,17 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
           )}
 
           {/* 3-COLUMN SUMMARY STRIP */}
-          <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* TOTAL OPEN */}
-            <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-amber-400 rounded-2xl p-3 sm:p-4 shadow-md text-center relative overflow-hidden">
-              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-amber-400 uppercase tracking-tight">
-                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-                <span>{t.totalOpen}</span>
+            <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-amber-400 rounded-2xl py-2 px-1.5 sm:p-4 shadow-md text-center relative overflow-hidden">
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-tight">
+                <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                <span className="truncate">{t.totalOpen}</span>
               </div>
-              <div className="text-[28px] sm:text-[34px] font-black text-white mt-1 leading-none font-mono tabular-nums">
+              <div className="text-2xl sm:text-[34px] font-black text-white mt-0.5 sm:mt-1 leading-none font-mono tabular-nums">
                 {summaryStrip.totalOpen}
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">
+              <p className="text-[9px] sm:text-[11px] text-slate-400 mt-1 truncate">
                 {selectedWardFilter === 'ALL'
                   ? (language === 'mr' ? 'शहर पातळी (PCMC)' : 'City-wide PCMC')
                   : (language === 'mr' ? 'निवडलेल्या प्रभागात' : 'In selected ward')}
@@ -784,29 +784,29 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
             </div>
 
             {/* OVERDUE */}
-            <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-rose-500 rounded-2xl p-3 sm:p-4 shadow-md text-center relative overflow-hidden">
-              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-rose-400 uppercase tracking-tight">
-                <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
-                <span>{t.overdue}</span>
+            <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-rose-500 rounded-2xl py-2 px-1.5 sm:p-4 shadow-md text-center relative overflow-hidden">
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-bold text-rose-400 uppercase tracking-tight">
+                <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+                <span className="truncate">{t.overdue}</span>
               </div>
-              <div className="text-[28px] sm:text-[34px] font-black text-rose-400 mt-1 leading-none font-mono tabular-nums">
+              <div className="text-2xl sm:text-[34px] font-black text-rose-400 mt-0.5 sm:mt-1 leading-none font-mono tabular-nums">
                 {summaryStrip.overdueCount}
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">
+              <p className="text-[9px] sm:text-[11px] text-slate-400 mt-1 truncate">
                 {language === 'mr' ? 'मुदत संपलेली' : 'Breached SLA'}
               </p>
             </div>
 
             {/* RESOLVED */}
-            <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-emerald-400 rounded-2xl p-3 sm:p-4 shadow-md text-center relative overflow-hidden">
-              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-400 uppercase tracking-tight">
-                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                <span>{t.resolved}</span>
+            <div className="bg-[#111827] border border-white/[0.07] border-t-2 border-t-emerald-400 rounded-2xl py-2 px-1.5 sm:p-4 shadow-md text-center relative overflow-hidden">
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-tight">
+                <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+                <span className="truncate">{t.resolved}</span>
               </div>
-              <div className="text-[28px] sm:text-[34px] font-black text-emerald-400 mt-1 leading-none font-mono tabular-nums">
+              <div className="text-2xl sm:text-[34px] font-black text-emerald-400 mt-0.5 sm:mt-1 leading-none font-mono tabular-nums">
                 {summaryStrip.resolvedCount}
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1.5 truncate">
+              <p className="text-[9px] sm:text-[11px] text-slate-400 mt-1 truncate">
                 {language === 'mr' ? 'निवारण झाले' : 'Fixed & verified'}
               </p>
             </div>
@@ -912,7 +912,7 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                       </div>
 
                       {/* Row 2: Subtle Horizontal Progress Bar (Open vs Resolved) */}
-                      <div className="mt-2.5 pt-2 border-t border-slate-800/60 space-y-1">
+                      <div className="mt-2 pt-2 border-t border-slate-800/60 space-y-1">
                         <div className="flex items-center justify-between text-[10px] text-slate-400">
                           <span>{language === 'mr' ? 'निवारण दर' : 'Resolution Rate'}</span>
                           <span className="font-semibold text-slate-300">
@@ -920,56 +920,61 @@ export const LeaderboardTab = ({ language, onNavigateToMap }: LeaderboardTabProp
                           </span>
                         </div>
 
-                        <div className="w-full h-1.5 rounded-full bg-slate-950 overflow-hidden flex">
+                        <div className="w-full h-1 rounded-full bg-slate-800 overflow-hidden flex">
                           <div
                             className="bg-emerald-500 h-full transition-all duration-300"
                             style={{ width: `${resolutionPct}%` }}
                           />
                           {area.overdueCount > 0 && (
                             <div
-                              className="bg-rose-500 h-full transition-all duration-300"
+                              className="bg-rose-500/80 h-full transition-all duration-300"
                               style={{ width: `${Math.round((area.overdueCount / area.total) * 100)}%` }}
                             />
                           )}
                         </div>
                       </div>
 
-                      {/* Row 3: Category Emoji Pills, Drill-Down Link & Corporators */}
-                      <div className="flex items-center justify-between pt-2 text-[10px]">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {Object.entries(area.categories).map(([cat, cnt]) => (
+                      {/* Row 3: Category Emoji Pills (Full-width horizontal row) */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                        {Object.entries(area.categories).map(([cat, cnt]) => {
+                          const theme = getCategoryTheme(cat);
+                          const emoji = cat === 'Footpath' ? '🚶' : cat === 'Pothole' ? '🚧' : theme.emoji;
+                          return (
                             <span
                               key={cat}
-                              className="px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700 text-slate-200 font-medium"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-950/80 border border-slate-800 text-slate-300 text-[10px] font-medium"
                             >
-                              {cat === 'Garbage' ? '🗑️' : cat === 'Drainage' ? '💧' : cat === 'Streetlight' ? '💡' : cat === 'Encroachment' ? '🛑' : '⚠️'} {cat} ({cnt})
+                              <span>{emoji}</span>
+                              <span>{(t.categories as Record<string, string>)[cat] || cat}</span>
+                              <span className="font-mono text-slate-400">({cnt})</span>
                             </span>
-                          ))}
-                        </div>
+                          );
+                        })}
+                      </div>
 
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedCorporatorsWard(expandedCorporatorsWard === area.wardInfo.wardNo ? null : area.wardInfo.wardNo);
-                            }}
-                            className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 hover:underline bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800"
-                            title="View Elected Corporators"
-                          >
-                            <Users className="w-2.5 h-2.5" />
-                            <span>
-                              {expandedCorporatorsWard === area.wardInfo.wardNo 
-                                ? (language === 'mr' ? 'बंद करा' : 'Hide') 
-                                : (language === 'mr' ? 'नगरसेवक (४)' : 'Corporators (4)')}
-                            </span>
-                          </button>
+                      {/* Row 4: Card Action Footer (Corporators & View Issues) */}
+                      <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/60 text-xs">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCorporatorsWard(expandedCorporatorsWard === area.wardInfo.wardNo ? null : area.wardInfo.wardNo);
+                          }}
+                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1.5 bg-slate-950 hover:bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800 transition-colors"
+                          title="View Elected Corporators"
+                        >
+                          <Users className="w-3 h-3 text-cyan-400" />
+                          <span>
+                            {expandedCorporatorsWard === area.wardInfo.wardNo 
+                              ? (language === 'mr' ? 'बंद करा' : 'Hide Corporators') 
+                              : (language === 'mr' ? 'नगरसेवक (४)' : 'Corporators (4)')}
+                          </span>
+                        </button>
 
-                          {/* Direct Drill-Down Trigger */}
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-400 group-hover:text-cyan-300">
-                            <span>{language === 'mr' ? 'तक्रारी पहा' : 'View Issues'} ({area.total})</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </div>
+                        {/* Direct Drill-Down Trigger */}
+                        <div className="flex items-center gap-1 text-xs font-bold text-cyan-400 group-hover:text-cyan-300 group-hover:translate-x-0.5 transition-all">
+                          <span>{language === 'mr' ? 'तक्रारी पहा' : 'View Issues'} ({area.total})</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
                         </div>
                       </div>
 
