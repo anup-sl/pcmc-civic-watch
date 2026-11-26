@@ -961,7 +961,7 @@ export const ReportTab = ({ language, onNavigateToMap, initialCoords }: ReportTa
                   setCitizenPhone(e.target.value);
                   try { localStorage.setItem('pcmc_citizen_contact', e.target.value); } catch (_) {}
                 }}
-                placeholder={language === 'mr' ? 'मोबाईल नंबर (98XXXXXXXX) (पर्यायी)' : '98XXXXXXXX (for engineer callback)'}
+                placeholder={language === 'mr' ? 'मोबाईल नंबर (पर्यायी)' : 'Phone Number (Optional)'}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
               />
               <input
